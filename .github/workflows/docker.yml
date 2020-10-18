@@ -5,8 +5,17 @@ on:
     branches: [ main ]
 
 jobs:
-  name: Push Docker image to multiple registries
+  build:
     runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+      - name: Build DockerFile
+        run: |
+          docker build . -t covid-modeling:latest
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
