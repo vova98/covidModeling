@@ -14,4 +14,4 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOK }}
+          password: ${{ secrets.GITHUB_TOKEN }}
