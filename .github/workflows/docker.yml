@@ -1,8 +1,8 @@
 name: Publish Docker image
 
 on:
-  push:
-    branches: [ main ]
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -27,4 +27,3 @@ jobs:
           password: ${{ secrets.GHCR_TOKEN }}
           repository: andriygav/covid-modeling
           tags: latest
-
