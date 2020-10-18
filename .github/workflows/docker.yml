@@ -25,5 +25,6 @@ jobs:
           registry: ghcr.io
           username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_TOKEN }}
-          tag_with_ref: true
+          repository: andriygav/covid-modeling
+          tags: latest
 
