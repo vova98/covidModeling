@@ -33,11 +33,21 @@ RUN rm -rf /tmp/* /root/.cache/* \
 COPY ./flask/requirements.txt /tmp
 RUN cat /tmp/requirements.txt | xargs --no-run-if-empty -n 1 python -m pip install
 
+# Install src requirements
+COPY ./src/requirements.txt /tmp
+RUN cat /tmp/requirements.txt | xargs --no-run-if-empty -n 1 python -m pip install
+
+COPY ./src/ /src
+RUN python -m pip install /src
+RUN rm -rf /tmp/* /root/.cache/* \
+    && rm -rf /src
+
 RUN rm -rf /tmp/* /root/.cache/*
+
+COPY ./flask /app
 
 WORKDIR /app/
 
-COPY ./flask /app/flask
 
-CMD ["/bin/bash", "/app/flask/flask.sh", "8080"]
+CMD ["/bin/bash", "/app/flask.sh", "8080"]
 

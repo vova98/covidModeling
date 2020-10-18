@@ -1,6 +1,72 @@
 {% extends "layout.html" %}
 {% block content %}
-	<div class="home">
-        <h1>Hello all!</h1>
+    <script>
+    const http = new XMLHttpRequest();
+
+    function set_date(id) {
+        var date = new Date();
+        document.getElementById(id).value = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+    }
+
+    function get_graph(city=null, model=true, date=true) {
+        if(!city){
+            city = document.getElementById("cities").value;
+        }
+
+
+        var url = `/graph/${city}`;
+        if(model){
+            var models = new Object()
+
+            {% for key in models %}
+                models[`{{ key }}`] = document.getElementById("models[{{ key }}]").checked ? 1: 0
+            {% endfor %}
+
+            url = url + `&models=${JSON.stringify(models)}`;
+        }
+
+        if(date){
+            var date = new Date(document.getElementById("date").value);
+            url = url + `&date=${JSON.stringify(date.toLocaleDateString('ru'))}`;
+        }
+
+        url = url.replace('&', '?')
+        
+        
+        http.open("GET", url, true);
+        http.onreadystatechange = function () {
+            if(http.readyState === XMLHttpRequest.DONE && http.status === 200) {
+                document.getElementById("graph").src = http.responseText;
+            };
+        }
+        http.send();
+    }
+    get_graph(`{{ cities[0] }}`, false, false)
+    </script>
+    <div class="home">
+        <h1>Visualisation</h1>
     </div>
+
+
+    <select id="cities" size="1" name="city" onchange="get_graph()">
+        <option disabled>Choose the city</option>
+        {% for key in cities %}
+            <option value="{{ key }}">{{key}}</option>
+        {% endfor %}
+    </select>
+
+    <div>
+        {% for key in models %}
+            <div>
+              <input type="checkbox" id="models[{{ key }}]" name="{{ key }}" onchange="get_graph()">
+              <label for="{{ key }}">{{ models[key]["name"] }}</label>
+            </div>
+        {% endfor %}
+    </div>
+
+    <input type="date" id="date" name="predictdate" onchange=" get_graph()"/>
+    <script>
+        set_date("date");
+    </script>
+    <img id="graph" src="{{ plot }}">
 {% endblock %}
