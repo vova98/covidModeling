@@ -1,0 +1,13 @@
+name: Testing Compatibility
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+      - name: Build DockerFile
+        run: |
+          docker build . -t covid-modeling:latest
