@@ -22,10 +22,13 @@ app = Flask(__name__)
 @app.route('/')
 @app.route('/main')
 def main():
-    plot_url = get_city_graph('test1')
     models = get_models()
     cities = get_cities()
-    return render_template('main.html', cities=cities, models=models)
+    return render_template(
+        'main.html', 
+        cities=cities, 
+        models=models, 
+        default_city=list(cities.keys())[0])
 
 
 @app.route('/graph/<city>', methods=['GET'])

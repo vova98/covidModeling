@@ -148,27 +148,20 @@ def get_city_statistic(city):
                                'died': int}
     :rtype: dict
     """
-    if city == 'test1':
-        np.random.seed(42)
-        x = np.linspace(2, 5, 30)
-        y = 100*(np.sin(10*x)+1)/x + np.random.randn(30)
-        DICT = dict()
-        for i in range(1, 30):
-            DICT[i] = dict()
-            DICT[i]['date'] = '{}.9.2020'.format(i)
-            DICT[i]['sick'] = y[i]
-            DICT[i]['recovered'] = np.random.randint(1, 100)
-            DICT[i]['died'] = np.random.randint(1, 100)
-        return DICT
-    elif city == 'test2':
-        np.random.seed(0)
-        x = np.linspace(2, 5, 30)
-        y = (np.exp(x)+1)/x + np.random.randn(30)
-        DICT = dict()
-        for i in range(1, 30):
-            DICT[i] = dict()
-            DICT[i]['date'] = '{}.9.2020'.format(i)
-            DICT[i]['sick'] = y[i]
-            DICT[i]['recovered'] = np.random.randint(1, 100)
-            DICT[i]['died'] = np.random.randint(1, 100)
-        return DICT
+    dynamodb = DynamoDBSingleton.get()
+    table = dynamodb.Table('cities')
+    response = table.get_item(Key={'id': city})
+
+    if 'Item' not in response:
+        return dict()
+    load = json.loads(response['Item']['data'])
+
+    DICT = dict()
+    for key in load:
+        DICT[int(key)] = load[key]
+
+    return DICT
+
+
+
+
