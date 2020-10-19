@@ -12,6 +12,14 @@ Modeling of COVID-19 spreading
     :target: https://github.com/vova98/covidModeling/actions
     :alt: Deploy
     
+    
+Requirements
+============
+
+.. code-block:: bash
+
+    docker-compose version 1.27.4, build 40524192
+    
 Run By Docker
 =============
 
