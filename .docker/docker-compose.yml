@@ -12,6 +12,8 @@ services:
       - PORT
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
+    depends_on:
+      - covid-dynamodb
 
   covid-dynamodb:
     image: deangiberson/aws-dynamodb-local
