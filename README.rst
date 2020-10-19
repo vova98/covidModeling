@@ -17,5 +17,13 @@ Run By Docker
 
 .. code-block:: bash
 
-    docker-compose -f service.yml pull
-    docker-compose -f service.yml up -d --force-recreate
+    sudo -E docker-compose pull
+    sudo -E docker-compose up -d --force-recreate
+
+Build From Source
+=================
+
+.. code-block:: bash
+
+    sudo -E docker-compose build
+    sudo -E docker-compose up -d --force-recreate
