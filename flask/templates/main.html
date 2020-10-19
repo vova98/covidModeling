@@ -51,7 +51,7 @@
     <select id="cities" size="1" name="city" onchange="get_graph()">
         <option disabled>Choose the city</option>
         {% for key in cities %}
-            <option value="{{ key }}">{{key}}</option>
+            <option value="{{ key }}">{{ cities[key] }}</option>
         {% endfor %}
     </select>
 
