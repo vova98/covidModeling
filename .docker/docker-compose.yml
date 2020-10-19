@@ -1,0 +1,20 @@
+version: '3.3'
+
+services:
+  covid:
+    image: ghcr.io/andriygav/covid-modeling
+    restart: always
+    build:
+      context: ${PWD}
+      dockerfile: ${PWD}/.docker/covid/Dockerfile
+    network_mode: host
+    environment:
+      - PORT
+
+  covid-dynamodb:
+    image: deangiberson/aws-dynamodb-local
+    restart: always
+    ports:
+      - 8000:8000
+    volumes:
+      - ${DYNAMODB_DATA}:/var/dynamodb_local

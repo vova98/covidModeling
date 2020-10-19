@@ -12,16 +12,16 @@ jobs:
         uses: actions/checkout@v2
       - name: Build DockerFile
         run: |
-          docker build . -t covid-modeling:latest
+          docker build . -f .docker/covid/Dockerfile -t covid-modeling:latest
   deploy:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v2
       - name: Push to GitHub Packages
         uses: docker/build-push-action@v1
         with:
+          context: .
+          file: .docker/covid/Dockerfile
           registry: ghcr.io
           username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_TOKEN }}

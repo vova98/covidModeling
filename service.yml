@@ -1,9 +1,0 @@
-version: '3.3'
-
-services:
-  covid:
-    image: ghcr.io/andriygav/covid-modeling
-    restart: always
-    ports:
-      - 80:8080
-      - 8000:8000

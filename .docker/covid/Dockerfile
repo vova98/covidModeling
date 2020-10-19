@@ -1,4 +1,5 @@
 ARG BASE_IMAGE=ubuntu:20.04
+ARG PORT=8080
 FROM ${BASE_IMAGE}
 
 # Install python3.8
@@ -48,6 +49,5 @@ COPY ./flask /app
 
 WORKDIR /app/
 
-
-CMD ["/bin/bash", "/app/flask.sh", "8080"]
+CMD /bin/bash /app/flask.sh ${PORT}
 
