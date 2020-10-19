@@ -20,8 +20,8 @@ jobs:
       - name: Push to GitHub Packages
         uses: docker/build-push-action@v1
         with:
-          context: .
-          file: .docker/covid/Dockerfile
+          context: /
+          file: /.docker/covid/Dockerfile
           registry: ghcr.io
           username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_TOKEN }}
