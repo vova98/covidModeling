@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*- 
 import numpy as np
 import json
+from functools import lru_cache
 
-from covidlib import approximator
+import inspect
+import covidlib
 from copy import deepcopy
 
 import boto3
@@ -11,9 +13,10 @@ class DynamoDBSingleton(object):
     
     @staticmethod
     def load():
-        DynamoDBSingleton._dynamodb = boto3.resource('dynamodb',
-                                                     region_name="us-west-2",
-                                                     endpoint_url="http://localhost:8000")
+        DynamoDBSingleton._dynamodb = boto3.resource(
+            'dynamodb',
+            region_name="us-west-2",
+            endpoint_url="http://localhost:8000")
         return DynamoDBSingleton._dynamodb
     
     @staticmethod
@@ -87,10 +90,11 @@ def init_base():
         cities = dynamodb.Table('cities')
         pass
 
-def approximate(data, models, date):
+@lru_cache(maxsize=10**8)
+def approximate(city, models, date):
     r"""
-    :param data: выборка
-    :type data: dict
+    :param city: город для аппроксимации
+    :type city: str
 
     :param models: список моделей
     :type models: list
@@ -99,6 +103,8 @@ def approximate(data, models, date):
     :type date: str
     """
     worked_models = get_models()
+
+    data = get_city_statistic(city)
 
     datas = dict()
     datas['real'] = deepcopy(data)
@@ -124,12 +130,22 @@ def get_cities():
     ret = table.scan()['Items']
     return {item['id']: item['name'] for item in ret}
 
-def get_models():
+def get_models(with_approximator=True):
+    models_modules = dict()
+    for cls_name, cls_obj in inspect.getmembers(covidlib):
+        try:
+            if cls_obj.__module__ == covidlib.approximator.__name__:
+                models_modules[cls_name] = cls_obj
+        except:
+            continue
+
     models = dict()
-    models['spline'] = dict()
-    models['spline']['name'] = 'сплайн'
-    models['spline']['model'] = approximator.SplineApproximator
-    models['spline']['parameters'] = dict()
+    for key in models_modules:
+        models[key] = dict()
+        models[key]['name'] = models_modules[key]._name
+        if with_approximator:
+            models[key]['model'] = models_modules[key]
+        models[key]['parameters'] = models_modules[key]._parameters
     return models
 
 def get_city_statistic(city):
@@ -162,6 +178,16 @@ def get_city_statistic(city):
 
     return DICT
 
+def get_data_field():
+    r"""
+    Возвращает рассматриваемые моделью поля.
+    В нашем случае возвращает словарь {'sick': 'Заболело', 
+                                       'recovered': 'Выздоровело', 
+                                       'died': 'Умерло'}
 
-
-
+    :return: словрь релевантных полей данных.
+    :rtype: dict
+    """
+    return {'sick': 'Заболело', 
+            'recovered': 'Выздоровело', 
+            'died': 'Умерло'}

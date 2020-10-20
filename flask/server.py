@@ -1,38 +1,49 @@
 # -*- coding: utf-8 -*- 
-from flask import render_template, Flask, request, jsonify, Response
+from flask import render_template, Flask, \
+                  request, jsonify, Response, url_for
 
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-import tempfile
 import json
-import re
 
 from io import BytesIO
 import base64
 
-import pandas as pd
 import numpy as np
 
-from api import get_cities, get_city_statistic, get_models, approximate
+from api import get_cities, \
+                get_city_statistic, \
+                get_models, \
+                approximate, \
+                get_data_field
 
 app = Flask(__name__)
 
 @app.route('/')
 @app.route('/main')
 def main():
-    models = get_models()
+    models = get_models(with_approximator=False)
     cities = get_cities()
+    fields = get_data_field()
     return render_template(
         'main.html', 
-        cities=cities, 
-        models=models, 
+        cities=cities,
+        models=models,
+        fields=fields,
         default_city=list(cities.keys())[0])
 
 
 @app.route('/graph/<city>', methods=['GET'])
 def get_city_graph(city):
+    width = int(request.args.get('width', 800))
+    hight = int(request.args.get('hight', 600))
+
+    if width < 800:
+        width = 800
+    if hight < 800:
+        hight = 600
 
     models = request.args.get('models')
     if models:
@@ -43,32 +54,48 @@ def get_city_graph(city):
                 models.append(key)
     else:
         models = []
+
+    fields = request.args.get('fields')
+    if fields:
+        fields_all = json.loads(fields)
+        fields = []
+        for key in fields_all:
+            if fields_all[key] == 1:
+                fields.append(key)
+    else:
+        fields = []
+
     date = request.args.get('date')
     if date:
         date = json.loads(date)
     else:
         date = None
 
-    data = get_city_statistic(city)
+    approx = approximate(city, tuple(models), date)
 
-    approx = approximate(data, models, date)
+    ax = plt.figure(figsize=(width//100, hight//100)).gca()
 
-    ax = plt.figure(figsize=(8.0, 4.0)).gca()
-    for k in approx:
-        keys = sorted(list(approx[k].keys()))
+    type_of_points = ['.', '+', '*', 'x', 'o', '^', '>', '<']*len(fields)
+    type_of_lines = ['-', '--', '-.', '--.']*len(fields)
 
-        x = [key for key in keys]
-        y = [approx[k][key]['sick'] for key in keys]
-        x_labels = [approx[k][key]['date'] for key in keys]
-        
+    colors = ['blue', 'red', 'green', 'orange', 'black']*len(fields)
 
-        if k == 'real':
-            ax.plot(x, y, '.', label=k)
-        else:
-            ax.plot(x, y, '-', label=k)
+    for f, field in enumerate(fields):
+        for a, appr in enumerate(approx):
+            keys = sorted(list(approx[appr].keys()))
 
-        ax.set_xticks(x)
-        ax.set_xticklabels(x_labels)
+            x = [key for key in keys]
+            y = [approx[appr][key][field] for key in keys]
+            x_labels = [approx[appr][key]['date'] for key in keys]
+            
+
+            if appr == 'real':
+                ax.plot(x, y, type_of_points[f], label=appr+' '+field, color = colors[a])
+            else:
+                ax.plot(x, y, type_of_lines[f], label=appr+' '+field, color = colors[a])
+
+            ax.set_xticks(x)
+            ax.set_xticklabels(x_labels)
 
     ax.legend(loc='best')
     ax.grid()

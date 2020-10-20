@@ -1,72 +1,106 @@
 {% extends "layout.html" %}
 {% block content %}
-    <script>
-    const http = new XMLHttpRequest();
+	<script type="text/javascript" src="{{ url_for('static', filename='js/main.js') }}"></script>
+	<body>
+		<div class="header">
+			<h1 class="header">Visualisation</h1>
+		</div>
 
-    function set_date(id) {
-        var date = new Date();
-        document.getElementById(id).value = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
-    }
+		<div id="graph_field" class="mainpage">
+			<img id="graph" class="matplotlib">
+		</div>
 
-    function get_graph(city=null, model=true, date=true) {
-        if(!city){
-            city = document.getElementById("cities").value;
-        }
-
-
-        var url = `/graph/${city}`;
-        if(model){
-            var models = new Object()
-
-            {% for key in models %}
-                models[`{{ key }}`] = document.getElementById("models[{{ key }}]").checked ? 1: 0
-            {% endfor %}
-
-            url = url + `&models=${JSON.stringify(models)}`;
-        }
-
-        if(date){
-            var date = new Date(document.getElementById("date").value);
-            url = url + `&date=${JSON.stringify(date.toLocaleDateString('ru'))}`;
-        }
-
-        url = url.replace('&', '?')
-        
-        
-        http.open("GET", url, true);
-        http.onreadystatechange = function () {
-            if(http.readyState === XMLHttpRequest.DONE && http.status === 200) {
-                document.getElementById("graph").src = http.responseText;
-            };
-        }
-        http.send();
-    }
-    get_graph(`{{ default_city }}`, false, false)
-    </script>
-    <div class="home">
-        <h1>Visualisation</h1>
-    </div>
-
-
-    <select id="cities" size="1" name="city" onchange="get_graph()">
-        <option disabled>Choose the city</option>
-        {% for key in cities %}
-            <option value="{{ key }}">{{ cities[key] }}</option>
-        {% endfor %}
-    </select>
-
-    <div>
-        {% for key in models %}
-            <div>
-              <input type="checkbox" id="models[{{ key }}]" name="{{ key }}" onchange="get_graph()">
-              <label for="{{ key }}">{{ models[key]["name"] }}</label>
-            </div>
-        {% endfor %}
-    </div>
-
-    <input type="date" id="date" name="predictdate" onchange=" get_graph()"/>
-    <script>
-        set_date("date");
-    </script>
-    <img id="graph" src="{{ plot }}">
+		<div class="mainpagetoolbar">
+			<div id="accordion">
+				<div class="card">
+					<div class="card-header" id="heading1">
+						<h5 class="mb-0">
+							<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse1" aria-expanded="false" aria-controls="collapse1">
+								Cities
+							</button>
+						</h5>
+					</div>
+					<div id="collapse1" class="collapse" aria-labelledby="heading1" data-parent="#accordion">
+						<div class="card-body">
+							<select id="cities" size="1" name="city" onchange='get_graph(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'>
+								<option disabled>Choose the city</option>
+								{% for key in cities %}
+									<option value="{{ key }}">{{ cities[key] }}</option>
+								{% endfor %}
+							</select>
+						</div>
+					</div>
+				</div>
+				<div class="card">
+					<div class="card-header" id="heading2">
+						<h5 class="mb-0">
+							<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse2" aria-expanded="t" aria-controls="collapse2">
+								Date
+							</button>
+						</h5>
+					</div>
+					<div id="collapse2" class="collapse" aria-labelledby="heading2" data-parent="#accordion">
+						<div class="card-body">
+							<input type="date" id="date" name="predictdate" onchange='get_graph(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'/>
+						</div>
+					</div>
+				</div>
+				<div class="card">
+					<div class="card-header" id="heading3">
+						<h5 class="mb-0">
+							<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse3" aria-expanded="t" aria-controls="collapse3">
+								Models
+							</button>
+						</h5>
+					</div>
+					<div id="collapse3" class="collapse" aria-labelledby="heading3" data-parent="#accordion">
+						<div class="card-body">
+							<div id="accordion_models">
+								{% for key in models %}
+									<div class="card">
+										<div class="card-header" id="heading_models_{{ key }}">
+											<h5 class="mb-0">
+												<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse_models_{{ key }}" aria-expanded="t" aria-controls="collapse_models_{{ key }}">
+													{{ models[key]["name"] }}
+												</button>
+											</h5>
+										</div>
+										<div id="collapse_models_{{ key }}" class="collapse" aria-labelledby="heading_models_{{ key }}" data-parent="#accordion_models">
+											<div class="card-body">
+												<input type="checkbox" id="checkbox_models_{{ key }}" name="models_{{ key }}" onchange='get_graph(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'>
+										  	<label for="models_{{ key }}">{{ models[key]["name"] }}</label>
+											</div>
+										</div>
+										  
+									</div>
+								{% endfor %}
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="card">
+					<div class="card-header" id="heading4">
+						<h5 class="mb-0">
+							<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse4" aria-expanded="t" aria-controls="collapse4">
+								Fields
+							</button>
+						</h5>
+					</div>
+					<div id="collapse4" class="collapse" aria-labelledby="heading4" data-parent="#accordion">
+						<div class="card-body">
+							{% for key in fields %}
+									<input type="checkbox" id="checkbox_fields_{{ key }}" name="fields_{{ key }}" onchange='get_graph(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))' checked>
+							  	<label for="fields_{{ key }}">{{ fields[key] }}</label>
+							  	<br>
+							{% endfor %}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+	<script>
+		get_graph(`{{ default_city }}`, null, false, JSON.parse(`{{fields|tojson}}`))
+		set_date("date");
+	</script>
 {% endblock %}
