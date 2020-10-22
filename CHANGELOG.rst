@@ -3,7 +3,7 @@ Changelog
 #########
 
 v0.0.3
-  - imporve frontend
+  - improve frontend
   - add linear model for predict (simple model)
 
 v0.0.2
