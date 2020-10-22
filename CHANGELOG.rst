@@ -2,6 +2,10 @@
 Changelog
 #########
 
+v0.0.4
+  - improve frontend
+  - model parameters are available in the frontend
+
 v0.0.3
   - improve frontend
   - add linear model for predict (simple model)
