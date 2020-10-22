@@ -96,12 +96,14 @@ def approximate(city, models, date):
     :param city: город для аппроксимации
     :type city: str
 
-    :param models: список моделей
-    :type models: list
+    :param models: словарь моделей с параметрами в формате JSON, 
+        json чтобы можно было в кеш записать все
+    :type models: json
 
     :param date: дата к которой нужно аппроксимировать
     :type date: str
     """
+    models = json.loads(models)
     worked_models = get_models()
 
     data = get_city_statistic(city)
@@ -111,7 +113,7 @@ def approximate(city, models, date):
 
     for mod in models:
         datas[mod] = deepcopy(data)
-        model = worked_models[mod]['model']()
+        model = worked_models[mod]['model'](**models[mod]['parameters'])
         model.fit(datas[mod])
 
         for key in datas[mod]:

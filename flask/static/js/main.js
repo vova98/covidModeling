@@ -11,7 +11,22 @@ function get_graph(city=null, model=null, date=true, field=null) {
     if(model){
         var models = new Object()
         for(var key in model) {
-            models[key] = document.getElementById(`checkbox_models_${key}`).checked ? 1: 0
+            models[key] = new Object()
+            models[key]['use'] = document.getElementById(`checkbox_models_${key}`).checked ? 1: 0
+            models[key]['parameters'] = new Object()
+
+            for(var par in model[key]['parameters']){
+                models[key]['parameters'][par] = new Object()
+                if(model[key]['parameters'][par]['type'] == 'choise'){
+                    for(var val in model[key]['parameters'][par]['values']){
+                        if(document.getElementById(`checkbox_models_${key}_params_${par}_${model[key]['parameters'][par]['values'][val]}`).checked){
+                            models[key]['parameters'][par] = model[key]['parameters'][par]['values'][val]
+                        }
+                    }
+                }else if(model[key]['parameters'][par]['type'] == 'continues'){
+                    models[key]['parameters'][par] = document.getElementById(`models_${key}_params_${par}`).value
+                }
+            }
         }
         
         url = url + `&models=${JSON.stringify(models)}`;

@@ -48,12 +48,13 @@ def get_city_graph(city):
     models = request.args.get('models')
     if models:
         models_all = json.loads(models)
-        models = []
+        models = dict()
         for key in models_all:
-            if models_all[key] == 1:
-                models.append(key)
+            if models_all[key]['use'] == 1:
+                models[key] = dict()
+                models[key]['parameters'] = models_all[key]['parameters']
     else:
-        models = []
+        models = dict()
 
     fields = request.args.get('fields')
     if fields:
@@ -71,7 +72,7 @@ def get_city_graph(city):
     else:
         date = None
 
-    approx = approximate(city, tuple(models), date)
+    approx = approximate(city, json.dumps(models), date)
 
     ax = plt.figure(figsize=(width//100, hight//100)).gca()
 

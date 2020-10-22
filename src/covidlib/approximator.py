@@ -3,7 +3,7 @@ from abc import ABC
 from scipy.interpolate import interp1d
 import datetime
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Ridge
 
 class Approximator(ABC):
     r"""Базовый класс для всех аппроксимирующих моделей."""
@@ -66,10 +66,17 @@ class SplineApproximator(Approximator):
     Простая реализация аппроксиматора на основе сплайнов.
     """
     _name='Сплайны'
-    _parameters=dict()
-    def __init__(self):
+    _parameters={'kind': {'description': 'Тип кривой для построение сплайнов: кубическая либо линейная.',
+    					  'type': 'choise',
+    					  'values': ['cubic', 'linear'],
+    					  'default': 'cubic',
+    					  'min': None,
+    					  'max': None}}
+    def __init__(self, kind='cubic'):
         super(SplineApproximator, self).__init__()
         
+
+        self.kind = kind
         self.approximators = dict()
         
     def fit(self, data):
@@ -92,7 +99,7 @@ class SplineApproximator(Approximator):
         for model in models:
             y = [data[p][model] for p in points]
             x = [p for p in points]
-            self.approximators[model] = interp1d(x, y, kind='cubic',
+            self.approximators[model] = interp1d(x, y, kind=self.kind,
                                                  fill_value="extrapolate")
             
         last_point = points[-1]
@@ -157,11 +164,21 @@ class LinearApproximator(Approximator):
     r"""
     Простая реализация аппроксиматора на основе линейной регрессии.
     """
-    _name='Линейная модель'
-    _parameters=dict()
-    def __init__(self):
+    _name='МНК'
+    _parameters={'alpha': {'description': 'Параметр регуляризации alpha. В диапазоне от 0 до 1000.',
+    					   'type': 'continues',
+    					   'values': [],
+    					   'default': '1.0',
+    					   'min': '0.0',
+    					   'max': '1000.0'}}
+    def __init__(self, alpha=1.0):
         super(LinearApproximator, self).__init__()
         
+        self.alpha = float(alpha)
+        if self.alpha < float(self._parameters['alpha']['min']):
+        	self.alpha = float(self._parameters['alpha']['min'])
+        if self.alpha > float(self._parameters['alpha']['max']):
+        	self.alpha = float(self._parameters['alpha']['max'])
         self.approximators = dict()
         
     def fit(self, data):
@@ -184,7 +201,7 @@ class LinearApproximator(Approximator):
         for model in models:
             y = [data[p][model] for p in points]
             x = np.array([p for p in points]).reshape([-1,1])
-            self.approximators[model] = LinearRegression()
+            self.approximators[model] = Ridge(self.alpha)
             self.approximators[model].fit(np.reshape(x, [-1,1]), y)
             
         last_point = points[-1]

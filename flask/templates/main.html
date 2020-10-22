@@ -60,18 +60,41 @@
 									<div class="card">
 										<div class="card-header" id="heading_models_{{ key }}">
 											<h5 class="mb-0">
-												<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse_models_{{ key }}" aria-expanded="t" aria-controls="collapse_models_{{ key }}">
+												<input type="checkbox" id="checkbox_models_{{ key }}" name="models_{{ key }}" onchange='get_graph(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'>
+												<button for="models_{{ key }}" class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse_models_{{ key }}" aria-expanded="t" aria-controls="collapse_models_{{ key }}">
 													{{ models[key]["name"] }}
 												</button>
 											</h5>
 										</div>
 										<div id="collapse_models_{{ key }}" class="collapse" aria-labelledby="heading_models_{{ key }}" data-parent="#accordion_models">
-											<div class="card-body">
-												<input type="checkbox" id="checkbox_models_{{ key }}" name="models_{{ key }}" onchange='get_graph(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'>
-										  	<label for="models_{{ key }}">{{ models[key]["name"] }}</label>
+											<div class="card-body card-body-width">
+												<button type="button" class="symbols" style="font-size: 18px;" onclick='get_graph(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'>
+														<i class="fa fa-refresh"></i>
+												</button>
+												{% for par in models[key]["parameters"] %}
+													<h5 class="param">
+														{{par}}<sup><i data-toggle="tooltip" title="{{ models[key]['parameters'][par]['description']}}" class="fa fa-question-circle-o"></i></sup>
+													</h5>
+
+													{% if models[key]["parameters"][par]['type'] == 'choise' %}
+														{% for val in models[key]["parameters"][par]['values'] %}
+															{% if models[key]["parameters"][par]['default'] == val%}
+																<input type="radio" id="checkbox_models_{{ key }}_params_{{ par }}_{{ val }}" name="checkbox_models_{{ key }}_params_{{ par }}" checked>
+															{% else %}
+																<input type="radio" id="checkbox_models_{{ key }}_params_{{ par }}_{{ val }}" name="checkbox_models_{{ key }}_params_{{ par }}">
+															{% endif %}
+															<label for="checkbox_models_{{ key }}_params_{{ par }}_{{ val }}">{{val}}</label>
+															<br>
+														{% endfor %}
+													{% endif %}
+													{% if models[key]["parameters"][par]['type'] == 'continues' %}
+														<input type="number" step="0.01" min="{{ models[key]['parameters'][par]['min'] }}" max="{{ models[key]['parameters'][par]['max'] }}" value="{{ models[key]['parameters'][par]['default'] }}" name="models_{{ key }}_params_{{ par }}" id="models_{{ key }}_params_{{ par }}">
+													{% endif %}
+												{% endfor %}
+												
+
 											</div>
 										</div>
-										  
 									</div>
 								{% endfor %}
 							</div>
@@ -90,8 +113,8 @@
 						<div class="card-body">
 							{% for key in fields %}
 									<input type="checkbox" id="checkbox_fields_{{ key }}" name="fields_{{ key }}" onchange='get_graph(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))' checked>
-							  	<label for="fields_{{ key }}">{{ fields[key] }}</label>
-							  	<br>
+								<label for="fields_{{ key }}">{{ fields[key] }}</label>
+								<br>
 							{% endfor %}
 						</div>
 					</div>
@@ -102,5 +125,7 @@
 	<script>
 		get_graph(`{{ default_city }}`, null, false, JSON.parse(`{{fields|tojson}}`))
 		set_date("date");
+
+		$('[data-toggle="tooltip"]').tooltip();
 	</script>
 {% endblock %}
