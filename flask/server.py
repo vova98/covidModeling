@@ -1,25 +1,16 @@
-# -*- coding: utf-8 -*- 
-from flask import render_template, Flask, \
-                  request, jsonify, Response, url_for
-
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
+# -*- coding: utf-8 -*-
+import base64
+from io import BytesIO
 import json
 
-from io import BytesIO
-import base64
+import matplotlib
+import matplotlib.pyplot as plt
 
-import numpy as np
-
-from api import get_cities, \
-                get_city_statistic, \
-                get_models, \
-                approximate, \
-                get_data_field
-
+from .api import approximate, get_cities, get_data_field, get_models
+from flask import render_template, Flask, request, Response
+matplotlib.use('Agg')
 app = Flask(__name__)
+
 
 @app.route('/')
 @app.route('/main')
@@ -28,7 +19,7 @@ def main():
     cities = get_cities()
     fields = get_data_field()
     return render_template(
-        'main.html', 
+        'main.html',
         cities=cities,
         models=models,
         fields=fields,
@@ -71,7 +62,7 @@ def get_city_graph(city):
     else:
         date = None
 
-    approx = approximate(city, tuple(models), date)
+    approx = approximate(city, models, date)
 
     ax = plt.figure(figsize=(width//100, hight//100)).gca()
 
@@ -87,12 +78,13 @@ def get_city_graph(city):
             x = [key for key in keys]
             y = [approx[appr][key][field] for key in keys]
             x_labels = [approx[appr][key]['date'] for key in keys]
-            
 
             if appr == 'real':
-                ax.plot(x, y, type_of_points[f], label=appr+' '+field, color = colors[a])
+                ax.plot(x, y, type_of_points[f], label=appr + ' ' + field,
+                        color=colors[a])
             else:
-                ax.plot(x, y, type_of_lines[f], label=appr+' '+field, color = colors[a])
+                ax.plot(x, y, type_of_lines[f], label=appr + ' ' + field,
+                        color=colors[a])
 
             ax.set_xticks(x)
             ax.set_xticklabels(x_labels)

@@ -17,10 +17,10 @@ Install package requirements
 
 Run Service
 ===========
-Write next commant to the terminal:
+Write next command to the terminal:
 
 .. code-block:: bash
 
     bash flask.sh 8080
 
-where 8080 is a port where service runnning. After running, follow the link `link <http://localhost:8080>`_ page.
+where 8080 is a port where service running. After running, follow the link `link <http://localhost:8080>`_ page.
