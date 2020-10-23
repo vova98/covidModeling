@@ -1,0 +1,28 @@
+[flake8]
+# Specify the number of subprocesses that Flake8 will use to run checks in parallel.
+jobs = auto
+# Print the total number of errors.
+count = True
+max-line-length = 80
+# Specify a list of codes to ignore.
+# W503 -
+# D10 - missing docstrings TODO: remove sometimes
+# D400 - First line in docstring should end with a period
+ignore =
+  W503
+  D10
+  D400
+# Mark amlet package as local
+application-import-names = amlet
+import-order-style = smarkets
+# Ignore unused imports in init files
+per-file-ignores = __init__.py:F401
+exclude =
+  .git
+  backend/js
+  **/*_pb2*.py
+  __pycache__
+  .venv*
+  venv*
+  .mypy_cache
+  .pytest_cache
