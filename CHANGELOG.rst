@@ -2,6 +2,10 @@
 Changelog
 #########
 
+v0.0.5
+  - improve frontend
+  - change matplotlib to chartJS
+
 v0.0.4
   - improve frontend
   - model parameters are available in the frontend
