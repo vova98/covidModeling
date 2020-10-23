@@ -1,11 +1,5 @@
 # -*- coding: utf-8 -*-
-import base64
-from io import BytesIO
 import json
-
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 
 from flask import render_template, Flask, request, Response
 
@@ -27,6 +21,7 @@ def main():
         models=models,
         fields=fields,
         default_city=list(cities.keys())[0])
+
 
 @app.route('/json/<city>', methods=['GET'])
 def get_json(city):

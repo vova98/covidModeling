@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 from abc import ABC
 from scipy.interpolate import interp1d
 import datetime
@@ -71,16 +71,18 @@ class SplineApproximator(Approximator):
     r"""
     Простая реализация аппроксиматора на основе сплайнов.
     """
-    _name='Сплайны'
-    _parameters={'kind': {'description': 'Тип кривой для построение сплайнов: кубическая либо линейная.',
-                          'type': 'choise',
-                          'values': ['cubic', 'linear'],
-                          'default': 'cubic',
-                          'min': None,
-                          'max': None}}
+    _name = 'Сплайны'
+    _parameters = {'kind': {
+        'description': 'Тип кривой для построение сплайнов:'
+                       ' кубическая либо линейная.',
+        'type': 'choise',
+        'values': ['cubic', 'linear'],
+        'default': 'cubic',
+        'min': None,
+        'max': None}}
+
     def __init__(self, kind='cubic'):
         super(SplineApproximator, self).__init__()
-        
 
         self.kind = kind
         self.approximators = dict()
@@ -125,7 +127,7 @@ class SplineApproximator(Approximator):
         day, month, year = date.split('.')
         pred_date = datetime.date(int(year), int(month), int(day))
         _id = self.last_fitted_element[0] + (
-                    pred_date - self.last_fitted_element[1]).days
+            pred_date - self.last_fitted_element[1]).days
 
         ret = dict()
         ret['date'] = date
@@ -172,16 +174,19 @@ class LinearApproximator(Approximator):
     r"""
     Простая реализация аппроксиматора на основе линейной регрессии.
     """
-    _name='МНК'
-    _parameters={'alpha': {'description': 'Параметр регуляризации alpha. В диапазоне от 0 до 1000.',
-                           'type': 'continues',
-                           'values': [],
-                           'default': '1.0',
-                           'min': '0.0',
-                           'max': '1000.0'}}
+    _name = 'МНК'
+    _parameters = {'alpha': {
+        'description': 'Параметр регуляризации alpha.'
+                       ' В диапазоне от 0 до 1000.',
+        'type': 'continues',
+        'values': [],
+        'default': '1.0',
+        'min': '0.0',
+        'max': '1000.0'}}
+
     def __init__(self, alpha=1.0):
         super(LinearApproximator, self).__init__()
-        
+
         self.alpha = float(alpha)
         if self.alpha < float(self._parameters['alpha']['min']):
             self.alpha = float(self._parameters['alpha']['min'])
@@ -208,9 +213,9 @@ class LinearApproximator(Approximator):
         points = sorted(list(data.keys()))
         for model in models:
             y = [data[p][model] for p in points]
-            x = np.array([p for p in points]).reshape([-1,1])
+            x = np.array([p for p in points]).reshape([-1, 1])
             self.approximators[model] = Ridge(self.alpha)
-            self.approximators[model].fit(np.reshape(x, [-1,1]), y)
+            self.approximators[model].fit(np.reshape(x, [-1, 1]), y)
 
         last_point = points[-1]
         day, month, year = data[last_point]['date'].split('.')
@@ -228,7 +233,7 @@ class LinearApproximator(Approximator):
         day, month, year = date.split('.')
         pred_date = datetime.date(int(year), int(month), int(day))
         _id = self.last_fited_element[0] + (
-                pred_date - self.last_fited_element[1]).days
+            pred_date - self.last_fited_element[1]).days
 
         ret = dict()
         ret['date'] = date

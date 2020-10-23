@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
-import numpy as np
+from copy import deepcopy
+import inspect
 import json
 from functools import lru_cache
-
-import inspect
-import covidlib
-from copy import deepcopy
+from pathlib import Path
 
 import boto3
+import numpy as np
+import pandas as pd
+
+import covidlib
+
+Yandex_data_path = Path('../data/Cities_to_22_10.csv').resolve()
 
 
 class DynamoDBSingleton(object):
@@ -61,42 +65,37 @@ def init_base():
                 'WriteCapacityUnits': 5
             }
         )
+        yandex_data = pd.read_csv(Yandex_data_path, delimiter=';')
 
-        np.random.seed(42)
-        x = np.linspace(2, 5, 30)
-        y = 100*(np.sin(10*x)+1)/x + np.random.randn(30)
-        dict_ = data_insert(y)
+        list_of_cities = yandex_data['region'].unique()
+        for city_num, city in enumerate(list_of_cities):
+            data_for_city = yandex_data[
+                yandex_data['region'] == city].to_numpy()
+            data = {}
+            for idx, row in enumerate(data_for_city):
+                data[idx] = {'date': row[0],
+                             'died': row[5],
+                             'sick': row[6],
+                             'recovered': row[7]}
+            cities.put_item(
+                Item={'id': str(city_num),
+                      'name': city,
+                      'from': data[0]['date'],
+                      'to': data[data_for_city.shape[0] - 1]['date'],
+                      'data': json.dumps(data)})
 
-        cities.put_item(
-            Item={'id': 'test1',
-                  'name': 'Тестовый город 1',
-                  'from': dict_[1]['date'],
-                  'to': dict_[29]['date'],
-                  'data': json.dumps(dict_)})
-
-        np.random.seed(0)
-        x = np.linspace(2, 5, 30)
-        y = (np.exp(x)+1)/x + np.random.randn(30)
-        dict_ = data_insert(y)
-
-        cities.put_item(
-            Item={'id': 'test2',
-                  'name': 'Тестовый город 2',
-                  'from': dict_[1]['date'],
-                  'to': dict_[29]['date'],
-                  'data': json.dumps(dict_)})
     except Exception:
         cities = dynamodb.Table('cities')
         pass
 
 
-@lru_cache(maxsize=10**8)
+@lru_cache(maxsize=10 ** 8)
 def approximate(city, models, date):
     r"""
     :param city: город для аппроксимации
     :type city: str
 
-    :param models: словарь моделей с параметрами в формате JSON, 
+    :param models: словарь моделей с параметрами в формате JSON,
         json чтобы можно было в кеш записать все
     :type models: json
 
@@ -121,7 +120,7 @@ def approximate(city, models, date):
 
         if date:
             for pred in model.predict_to(date):
-                datas[mod][datas[mod].__len__()+1] = pred
+                datas[mod][datas[mod].__len__() + 1] = pred
 
     return datas
 
