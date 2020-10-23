@@ -7,7 +7,8 @@
 		</div>
 
 		<div id="graph_field" class="mainpage">
-			<img id="graph" class="matplotlib">
+			<!-- <img id="graph" class="matplotlib"> -->
+			<canvas id="graphJS" class="graph"></canvas>
 		</div>
 
 		<div class="mainpagetoolbar">
@@ -22,7 +23,7 @@
 					</div>
 					<div id="collapse1" class="collapse" aria-labelledby="heading1" data-parent="#accordion">
 						<div class="card-body">
-							<select id="cities" size="1" name="city" onchange='get_graph(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'>
+							<select id="cities" size="1" name="city" onchange='plot_graph_from_json(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'>
 								<option disabled>Choose the city</option>
 								{% for key in cities %}
 									<option value="{{ key }}">{{ cities[key] }}</option>
@@ -41,7 +42,7 @@
 					</div>
 					<div id="collapse2" class="collapse" aria-labelledby="heading2" data-parent="#accordion">
 						<div class="card-body">
-							<input type="date" id="date" name="predictdate" onchange='get_graph(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'/>
+							<input type="date" id="date" name="predictdate" onchange='plot_graph_from_json(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'/>
 						</div>
 					</div>
 				</div>
@@ -60,7 +61,7 @@
 									<div class="card">
 										<div class="card-header" id="heading_models_{{ key }}">
 											<h5 class="mb-0">
-												<input type="checkbox" id="checkbox_models_{{ key }}" name="models_{{ key }}" onchange='get_graph(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'>
+												<input type="checkbox" id="checkbox_models_{{ key }}" name="models_{{ key }}" onchange='plot_graph_from_json(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'>
 												<button for="models_{{ key }}" class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse_models_{{ key }}" aria-expanded="t" aria-controls="collapse_models_{{ key }}">
 													{{ models[key]["name"] }}
 												</button>
@@ -68,7 +69,7 @@
 										</div>
 										<div id="collapse_models_{{ key }}" class="collapse" aria-labelledby="heading_models_{{ key }}" data-parent="#accordion_models">
 											<div class="card-body card-body-width">
-												<button type="button" class="symbols" style="font-size: 18px;" onclick='get_graph(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'>
+												<button type="button" class="symbols" style="font-size: 18px;" onclick='plot_graph_from_json(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'>
 														<i class="fa fa-refresh"></i>
 												</button>
 												{% for par in models[key]["parameters"] %}
@@ -112,7 +113,7 @@
 					<div id="collapse4" class="collapse" aria-labelledby="heading4" data-parent="#accordion">
 						<div class="card-body">
 							{% for key in fields %}
-									<input type="checkbox" id="checkbox_fields_{{ key }}" name="fields_{{ key }}" onchange='get_graph(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))' checked>
+									<input type="checkbox" id="checkbox_fields_{{ key }}" name="fields_{{ key }}" onchange='plot_graph_from_json(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))' checked>
 								<label for="fields_{{ key }}">{{ fields[key] }}</label>
 								<br>
 							{% endfor %}
@@ -123,7 +124,7 @@
 		</div>
 	</body>
 	<script>
-		get_graph(`{{ default_city }}`, null, false, JSON.parse(`{{fields|tojson}}`))
+		plot_graph_from_json(`{{ default_city }}`, null, false, JSON.parse(`{{fields|tojson}}`))
 		set_date("date");
 
 		$('[data-toggle="tooltip"]').tooltip();

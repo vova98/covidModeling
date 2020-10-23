@@ -130,7 +130,7 @@ class SplineApproximator(Approximator):
         ret = dict()
         ret['date'] = date
         for key in self.approximators:
-            ret[key] = self.approximators[key](_id)
+            ret[key] = self.approximators[key](_id).tolist()
 
         return ret
 
@@ -233,7 +233,7 @@ class LinearApproximator(Approximator):
         ret = dict()
         ret['date'] = date
         for key in self.approximators:
-            ret[key] = self.approximators[key].predict([[_id]])
+            ret[key] = self.approximators[key].predict([[_id]]).tolist()[0]
 
         return ret
 

@@ -100,6 +100,11 @@ body{
   margin: 0px;
 }
 
+canvas.graph{
+  width: 100%;
+  max-height: 100%;
+}
+
 img.matplotlib{
   width: 100%;
   max-height: 100%;
