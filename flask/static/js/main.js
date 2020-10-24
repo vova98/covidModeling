@@ -24,7 +24,6 @@ var chart = null
 function parse_json_to_graph(data, field=null){
     var datasets = [];
     for(var key in data){
-
         for(var fi in field){
             if(field[fi]==1){
                 var datas = []
@@ -35,17 +34,16 @@ function parse_json_to_graph(data, field=null){
                     }
                     datas.push(dat)
                 }
-                var dataSeries = {data: datas, 
-                                  label: key + ' ' + fi, 
+                var legend = key + ' ' + fi
+                var dataSeries = {data: datas,
+                                  label: legend, 
                                   fill: false, 
-                                  backgroundColor: intToRGB(hashCode(key)),
-                                  borderColor: intToRGB(hashCode(key))};
+                                  backgroundColor: intToRGB(hashCode(legend)),
+                                  borderColor: intToRGB(hashCode(legend))};
                 datasets.push(dataSeries)
             }
         }
     }
-
-    console.log(JSON.stringify(datasets))
 
     if(chart){
         chart.destroy()
@@ -61,7 +59,13 @@ function parse_json_to_graph(data, field=null){
               xAxes: [{
                 type: 'time'
               }]
-            }
+            },
+            tooltips: {
+                mode: 'label',
+            },
+            hover: {
+                mode: 'label'
+            },
         }
     });
 }
