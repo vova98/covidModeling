@@ -11,7 +11,7 @@ import pandas as pd
 
 import covidlib
 
-Yandex_data_path = Path('../data/Cities_to_22_10.csv').resolve()
+Yandex_data_path = Path('data/Cities_to_22_10.csv').resolve()
 
 
 class DynamoDBSingleton(object):
