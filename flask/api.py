@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from copy import deepcopy
+from datetime import datetime
+from datetime import timedelta
 import inspect
 import json
 from functools import lru_cache
@@ -88,6 +90,17 @@ def init_base():
         cities = dynamodb.Table('cities')
         pass
 
+def prune_data(data, use_date_from, use_date_to):
+    use_date_from = datetime.strptime(use_date_from, '%d.%m.%Y')
+    use_date_to = datetime.strptime(use_date_to, '%d.%m.%Y')
+
+    new_data = dict()
+    for key in data:
+        cur_date = datetime.strptime(data[key]['date'], '%d.%m.%Y')
+        if use_date_from <= cur_date and cur_date <= use_date_to:
+            new_data[key] = data[key]
+
+    return new_data
 
 @lru_cache(maxsize=10 ** 8)
 def approximate(city, models, date):
@@ -99,10 +112,11 @@ def approximate(city, models, date):
         json чтобы можно было в кеш записать все
     :type models: json
 
-    :param date: дата к которой нужно аппроксимировать
-    :type date: str
+    :param date: набор дат, которые нужны для построения и инферена модели
+    :type date: json
     """
     models = json.loads(models)
+    date = json.loads(date)
     worked_models = get_models()
 
     data = get_city_statistic(city)
@@ -112,18 +126,30 @@ def approximate(city, models, date):
 
     for mod in models:
         datas[mod] = deepcopy(data)
+        datas[mod] = prune_data(
+            datas[mod], date['use_date_from'], date['use_date_to'])
+
         model = worked_models[mod]['model'](**models[mod]['parameters'])
         model.fit(datas[mod])
 
-        for key in datas[mod]:
-            datas[mod][key] = model.predict(datas[mod][key]['date'])
+        datas[mod] = dict()
+        preds = model.predict_between(
+            date['use_date_from'], date['predict_date_to'])
 
-        if date:
-            for pred in model.predict_to(date):
-                datas[mod][datas[mod].__len__() + 1] = pred
+        for pred in preds:
+            datas[mod][datas[mod].__len__()] = pred
 
     return datas
 
+def get_dates(city):
+    dynamodb = DynamoDBSingleton.get()
+    table = dynamodb.Table('cities')
+    response = table.get_item(Key={'id': city})
+    
+    if 'Item' not in response:
+        return '01.01.2020', '01.10.2020'
+
+    return response['Item']['from'], response['Item']['to']
 
 def get_cities():
     dynamodb = DynamoDBSingleton.get()

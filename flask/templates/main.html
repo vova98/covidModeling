@@ -7,7 +7,6 @@
 		</div>
 
 		<div id="graph_field" class="mainpage">
-			<!-- <img id="graph" class="matplotlib"> -->
 			<canvas id="graphJS" class="graph"></canvas>
 		</div>
 
@@ -42,7 +41,30 @@
 					</div>
 					<div id="collapse2" class="collapse" aria-labelledby="heading2" data-parent="#accordion">
 						<div class="card-body">
-							<input type="date" id="date" name="predictdate" onchange='plot_graph_from_json(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'/>
+							<h5 class="param">
+								Use Date From<sup><i data-toggle="tooltip" title="Определяет с какой даты данные используются в обучении." class="fa fa-question-circle-o"></i></sup>
+							</h5>
+							<input type="date" id="use_date_from" name="use_date_from" onchange='plot_graph_from_json(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'/>
+							
+							<h5 class="param">
+								Use Date To<sup><i data-toggle="tooltip" title="Определяет до какой даты данные используются в обучении." class="fa fa-question-circle-o"></i></sup>
+							</h5>
+							<input type="date" id="use_date_to" name="use_date_to" onchange='plot_graph_from_json(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'/>
+							
+							<h5 class="param">
+								Predict Date To<sup><i data-toggle="tooltip" title="Определяет до какой даты делать прогноз." class="fa fa-question-circle-o"></i></sup>
+							</h5>
+							<input type="date" id="predict_date_to" name="predict_date_to" onchange='plot_graph_from_json(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'/>
+
+							<h5 class="param">
+								Plot Date From<sup><i data-toggle="tooltip" title="Определяет с какой даты данные выводить на графике." class="fa fa-question-circle-o"></i></sup>
+							</h5>
+							<input type="date" id="plot_date_from" name="plot_date_from" onchange='plot_graph_from_json(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'/>
+							
+							<h5 class="param">
+								Plot Date To<sup><i data-toggle="tooltip" title="Определяет до какой даты данные выводить на графике." class="fa fa-question-circle-o"></i></sup>
+							</h5>
+							<input type="date" id="plot_date_to" name="plot_date_to" onchange='plot_graph_from_json(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'/>
 						</div>
 					</div>
 				</div>
@@ -125,7 +147,11 @@
 	</body>
 	<script>
 		plot_graph_from_json(`{{ default_city }}`, null, false, JSON.parse(`{{fields|tojson}}`))
-		set_date("date");
+		set_date("predict_date_to", `{{default_dates["predict_date_to"]}}`);
+		set_date("use_date_to", `{{default_dates["use_date_to"]}}`);
+		set_date("use_date_from", `{{default_dates["use_date_from"]}}`);
+		set_date("plot_date_to", `{{default_dates["use_date_to"]}}`);
+		set_date("plot_date_from", `{{default_dates["use_date_from"]}}`);
 
 		$('[data-toggle="tooltip"]').tooltip();
 	</script>

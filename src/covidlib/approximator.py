@@ -46,10 +46,10 @@ class Approximator(ABC):
         """
         raise NotImplementedError
 
-    def predict_to(self, date):
+    def predict_between(self, date_from, date_to):
         r"""
-        Данная функция должна возвращать предсказания для всех дат начиная с
-            последней доступной в обучении и до заданой.
+        Данная функция должна возвращать предсказания для всех дат между
+            адаными.
         Предсказывать нужно количество заболевших, выздоровших и умерших.
 
         :param date: Строка формата "day.month.year"
@@ -86,7 +86,6 @@ class SplineApproximator(Approximator):
 
         self.kind = kind
         self.approximators = dict()
-        self.last_fitted_element = None
 
     def fit(self, data):
         r"""
@@ -107,14 +106,9 @@ class SplineApproximator(Approximator):
         points = sorted(list(data.keys()))
         for model in models:
             y = [data[p][model] for p in points]
-            x = [p for p in points]
+            x = [datetime.datetime.strptime(data[p]['date'], '%d.%m.%Y').timestamp() for p in points]
             self.approximators[model] = interp1d(x, y, kind=self.kind,
                                                  fill_value="extrapolate")
-
-        last_point = points[-1]
-        day, month, year = data[last_point]['date'].split('.')
-        last_date = datetime.date(int(year), int(month), int(day))
-        self.last_fitted_element = (last_point, last_date)
 
     def predict(self, date):
         r"""
@@ -124,22 +118,19 @@ class SplineApproximator(Approximator):
         :param date: Строка формата "day.month.year"
         :type date: str
         """
-        day, month, year = date.split('.')
-        pred_date = datetime.date(int(year), int(month), int(day))
-        _id = self.last_fitted_element[0] + (
-            pred_date - self.last_fitted_element[1]).days
+        pred_date = datetime.datetime.strptime(date, '%d.%m.%Y').timestamp()
 
         ret = dict()
         ret['date'] = date
         for key in self.approximators:
-            ret[key] = self.approximators[key](_id).tolist()
+            ret[key] = self.approximators[key](pred_date).tolist()
 
         return ret
 
-    def predict_to(self, date):
+    def predict_between(self, date_from, date_to):
         r"""
-        Данная функция должна возвращать предсказания для всех дат начиная с
-            последней доступной в обучении и до заданой.
+        Данная функция должна возвращать предсказания для всех дат между
+            адаными.
         Предсказывать нужно количество заболевших, выздоровших и умерших.
 
         :param date: Строка формата "day.month.year"
@@ -154,14 +145,13 @@ class SplineApproximator(Approximator):
         }
         :rtype: list
         """
+        date_from = datetime.datetime.strptime(date_from, '%d.%m.%Y')
+        date_to = datetime.datetime.strptime(date_to, '%d.%m.%Y')
 
-        day, month, year = date.split('.')
-        pred_date = datetime.date(int(year), int(month), int(day))
-
-        cur_date = self.last_fitted_element[1] + datetime.timedelta(days=1)
+        cur_date = date_from
 
         list_of_ret = []
-        while cur_date <= pred_date:
+        while cur_date <= date_to:
             pred = self.predict(cur_date.strftime('%d.%m.%Y'))
             cur_date = cur_date + datetime.timedelta(days=1)
 
@@ -213,14 +203,11 @@ class LinearApproximator(Approximator):
         points = sorted(list(data.keys()))
         for model in models:
             y = [data[p][model] for p in points]
-            x = np.array([p for p in points]).reshape([-1, 1])
+            x = np.array([datetime.datetime.strptime(
+                    data[p]['date'], '%d.%m.%Y').timestamp() for p in points]).reshape([-1, 1])
             self.approximators[model] = Ridge(self.alpha)
             self.approximators[model].fit(np.reshape(x, [-1, 1]), y)
 
-        last_point = points[-1]
-        day, month, year = data[last_point]['date'].split('.')
-        last_date = datetime.date(int(year), int(month), int(day))
-        self.last_fited_element = (last_point, last_date)
 
     def predict(self, date):
         r"""
@@ -230,22 +217,19 @@ class LinearApproximator(Approximator):
         :param date: Строка формата "day.month.year"
         :type date: str
         """
-        day, month, year = date.split('.')
-        pred_date = datetime.date(int(year), int(month), int(day))
-        _id = self.last_fited_element[0] + (
-            pred_date - self.last_fited_element[1]).days
+        pred_date = datetime.datetime.strptime(date, '%d.%m.%Y').timestamp()
 
         ret = dict()
         ret['date'] = date
         for key in self.approximators:
-            ret[key] = self.approximators[key].predict([[_id]]).tolist()[0]
+            ret[key] = self.approximators[key].predict([[pred_date]]).tolist()
 
         return ret
 
-    def predict_to(self, date):
+    def predict_between(self, date_from, date_to):
         r"""
-        Данная функция должна возвращать предсказания для всех дат начиная с
-            последней доступной в обучении и до заданой.
+        Данная функция должна возвращать предсказания для всех дат между
+            адаными.
         Предсказывать нужно количество заболевших, выздоровших и умерших.
 
         :param date: Строка формата "day.month.year"
@@ -260,17 +244,16 @@ class LinearApproximator(Approximator):
         }
         :rtype: list
         """
+        date_from = datetime.datetime.strptime(date_from, '%d.%m.%Y')
+        date_to = datetime.datetime.strptime(date_to, '%d.%m.%Y')
 
-        day, month, year = date.split('.')
-        pred_date = datetime.date(int(year), int(month), int(day))
-
-        cur_date = self.last_fited_element[1] + datetime.timedelta(days=1)
+        cur_date = date_from
 
         list_of_ret = []
-        while cur_date <= pred_date:
+        while cur_date <= date_to:
             pred = self.predict(cur_date.strftime('%d.%m.%Y'))
             cur_date = cur_date + datetime.timedelta(days=1)
-
+            
             list_of_ret.append(pred)
 
         return list_of_ret
