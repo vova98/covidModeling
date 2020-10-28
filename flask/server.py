@@ -5,7 +5,8 @@ from datetime import timedelta
 
 from flask import render_template, Flask, request, Response
 
-from api import approximate, get_cities, get_data_field, get_models, get_dates
+from api import (approximate, get_cities, get_data_field, get_models, get_dates,
+                 update_data)
 
 
 app = Flask(__name__)
@@ -14,6 +15,7 @@ app = Flask(__name__)
 @app.route('/')
 @app.route('/main')
 def main():
+    update_data()
     models = get_models(with_approximator=False)
     cities = get_cities()
     fields = get_data_field()
@@ -26,7 +28,7 @@ def main():
         cities=cities,
         models=models,
         fields=fields,
-        default_city=list(cities.keys())[0], 
+        default_city=list(cities.keys())[0],
         default_dates={
             'use_date_from': dates[0],
             'use_date_to': dates[1],

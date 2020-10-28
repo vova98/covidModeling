@@ -1,19 +1,27 @@
 # -*- coding: utf-8 -*-
 from copy import deepcopy
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 import inspect
 import json
+import hashlib
 from functools import lru_cache
 from pathlib import Path
+import re
 
 import boto3
-import numpy as np
+from botocore.exceptions import ClientError
+from bs4 import BeautifulSoup
 import pandas as pd
+import requests
 
 import covidlib
 
 Yandex_data_path = Path('data/Cities_to_22_10.csv').resolve()
+Name_mapping_path = Path('data/mapping.txt').resolve()
+
+
+def hashing(city):
+    return int(hashlib.sha1(city.encode('cp1251')).hexdigest(), 16) % (10 ** 6)
 
 
 class DynamoDBSingleton(object):
@@ -36,16 +44,6 @@ class DynamoDBSingleton(object):
 
 
 def init_base():
-    def data_insert(y):
-        data = dict()
-        for i in range(1, 30):
-            data[i] = dict()
-            data[i]['date'] = '{}.9.2020'.format(i)
-            data[i]['sick'] = y[i]
-            data[i]['recovered'] = np.random.randint(1, 100)
-            data[i]['died'] = np.random.randint(1, 100)
-        return data
-
     dynamodb = DynamoDBSingleton.get()
     try:
         cities = dynamodb.create_table(
@@ -79,16 +77,109 @@ def init_base():
                              'died': row[5],
                              'sick': row[6],
                              'recovered': row[7]}
-            cities.put_item(
-                Item={'id': str(city_num),
-                      'name': city,
-                      'from': data[0]['date'],
-                      'to': data[data_for_city.shape[0] - 1]['date'],
-                      'data': json.dumps(data)})
+            try:
+                cities.put_item(
+                    Item={'id': str(hashing(city)),
+                          'name': city,
+                          'from': data[0]['date'],
+                          'to_': data[data_for_city.shape[0] - 1]['date'],
+                          'data_': json.dumps(data)})
+            except ClientError as e:
+                print(e.response['Error']['Message'])
+        cities.put_item(
+            Item={'id': str('-1'),
+                  'ID': 15753,
+                  'date_': '22.10.2020'})
 
     except Exception:
         cities = dynamodb.Table('cities')
         pass
+
+
+def map_names():
+    mapping = {}
+    with open(Name_mapping_path) as file:
+        for line in file:
+            from_news, from_yandex = line[:-1].split(':')
+            mapping[from_news] = from_yandex
+    return mapping
+
+
+def parse_page(soup, mapping, cities_table):
+    date = soup.find('p', {'class': 'date'}).text[:-3]
+    data = soup.find('div', {'class': 'news-detail'}).text.split('\n')
+    for line in data:
+        result = re.search(r'\d+\. ([\w ()-]+) - (\d+)', line)
+        if result is not None:
+            city_name = result.group(1) if result.group(1) not in mapping \
+                else mapping[result.group(1)]
+            new_record = {'date': date,
+                          'died': 0,
+                          'sick': result.group(2),
+                          'recovered': 0}
+            city_id = hashing(city_name)
+            try:
+                get_city = cities_table.get_item(Key={'id': str(city_id)})
+                if 'Item' not in get_city:
+                    print('bad city name', result.group(1))
+                    continue
+                data_from_base = json.loads(get_city['Item']['data_'])
+
+                data_from_base[len(data_from_base.keys())] = new_record
+
+                cities_table.update_item(
+                    Key={
+                        'id': str(city_id)
+                    },
+                    UpdateExpression="set to_=:date, data_=:data",
+                    ExpressionAttributeValues={
+                        ':date': date,
+                        ':data': json.dumps(data_from_base)
+                    },
+                    ReturnValues="UPDATED_NEW"
+                )
+            except ClientError as e:
+                print(e.response['Error']['Message'])
+    return date
+
+
+def update_data():
+    url = 'https://www.rospotrebnadzor.ru/about/info/news/news_details.php?' \
+          'ELEMENT_ID=%d'
+    right_article_name = ' О подтвержденных случаях новой коронавирусной ' \
+                         'инфекции COVID-2019 в России'
+
+    dynamodb = DynamoDBSingleton.get()
+    cities_table = dynamodb.Table('cities')
+    ID_item = cities_table.get_item(Key={'id': '-1'})
+    ID = ID_item['Item']['ID']
+    date = ID_item['Item']['date_']
+    yesterday = datetime.today() - timedelta(days=1)
+
+    mapping = map_names()
+    while pd.to_datetime(date).date() < yesterday.date():
+        page = requests.get(url % ID)
+        soup = BeautifulSoup(page.text, features='lxml')
+        header = soup.find('h1').text
+        if header == right_article_name:
+            date = parse_page(soup, mapping, cities_table)
+            try:
+                cities_table.update_item(
+                    Key={
+                        'id': '-1'
+                    },
+                    UpdateExpression="set ID=:ID, date_=:date",
+                    ExpressionAttributeValues={
+                        ':ID': ID,
+                        ':date': date
+                    },
+                    ReturnValues="UPDATED_NEW"
+                )
+            except ClientError as e:
+                print(e.response['Error']['Message'])
+            print('end of update')
+        ID = ID + 1
+
 
 def prune_data(data, use_date_from, use_date_to):
     use_date_from = datetime.strptime(use_date_from, '%d.%m.%Y')
@@ -101,6 +192,7 @@ def prune_data(data, use_date_from, use_date_to):
             new_data[key] = data[key]
 
     return new_data
+
 
 @lru_cache(maxsize=10 ** 8)
 def approximate(city, models, date):
@@ -141,21 +233,23 @@ def approximate(city, models, date):
 
     return datas
 
+
 def get_dates(city):
     dynamodb = DynamoDBSingleton.get()
     table = dynamodb.Table('cities')
     response = table.get_item(Key={'id': city})
-    
+
     if 'Item' not in response:
         return '01.01.2020', '01.10.2020'
 
-    return response['Item']['from'], response['Item']['to']
+    return response['Item']['from'], response['Item']['to_']
+
 
 def get_cities():
     dynamodb = DynamoDBSingleton.get()
     table = dynamodb.Table('cities')
     ret = table.scan()['Items']
-    return {item['id']: item['name'] for item in ret}
+    return {item['id']: item['name'] for item in ret if 'name' in item.keys()}
 
 
 def get_models(with_approximator=True):
@@ -199,7 +293,7 @@ def get_city_statistic(city):
 
     if 'Item' not in response:
         return dict()
-    load = json.loads(response['Item']['data'])
+    load = json.loads(response['Item']['data_'])
 
     dict_ = dict()
     for key in load:
