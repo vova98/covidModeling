@@ -134,7 +134,10 @@ def approximate(city, models, date):
 
         datas[mod] = dict()
         preds = model.predict_between(
-            date['use_date_from'], date['predict_date_to'])
+            (
+            	datetime.strptime(date['use_date_to'], '%d.%m.%Y') \
+            	+ timedelta(days=1)).strftime('%d.%m.%Y'),
+            date['predict_date_to'])
 
         for pred in preds:
             datas[mod][datas[mod].__len__()] = pred
