@@ -88,7 +88,7 @@ def init_base():
                 print(e.response['Error']['Message'])
         cities.put_item(
             Item={'id': str('-1'),
-                  'ID': 15753,
+                  'ID': 15752,
                   'date_': '22.10.2020'})
 
     except Exception:
@@ -144,6 +144,7 @@ def parse_page(soup, mapping, cities_table):
 
 
 def update_data():
+    print('start of update')
     url = 'https://www.rospotrebnadzor.ru/about/info/news/news_details.php?' \
           'ELEMENT_ID=%d'
     right_article_name = ' О подтвержденных случаях новой коронавирусной ' \
@@ -152,7 +153,7 @@ def update_data():
     dynamodb = DynamoDBSingleton.get()
     cities_table = dynamodb.Table('cities')
     ID_item = cities_table.get_item(Key={'id': '-1'})
-    ID = ID_item['Item']['ID']
+    ID = ID_item['Item']['ID'] + 1
     date = ID_item['Item']['date_']
     yesterday = datetime.today() - timedelta(days=1)
 
@@ -177,8 +178,9 @@ def update_data():
                 )
             except ClientError as e:
                 print(e.response['Error']['Message'])
-            print('end of update')
         ID = ID + 1
+    print('end of update')
+    return date
 
 
 def prune_data(data, use_date_from, use_date_to):
@@ -226,9 +228,8 @@ def approximate(city, models, date):
 
         datas[mod] = dict()
         preds = model.predict_between(
-            (
-            	datetime.strptime(date['use_date_to'], '%d.%m.%Y') \
-            	+ timedelta(days=1)).strftime('%d.%m.%Y'),
+            (datetime.strptime(date['use_date_to'], '%d.%m.%Y')
+                + timedelta(days=1)).strftime('%d.%m.%Y'),
             date['predict_date_to'])
 
         for pred in preds:

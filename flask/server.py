@@ -15,7 +15,6 @@ app = Flask(__name__)
 @app.route('/')
 @app.route('/main')
 def main():
-    update_data()
     models = get_models(with_approximator=False)
     cities = get_cities()
     fields = get_data_field()
@@ -34,6 +33,12 @@ def main():
             'use_date_to': dates[1],
             'predict_date_to': dates[2],
         })
+
+
+@app.route('/update', methods=['GET'])
+def update():
+    last_date = update_data()
+    return Response({'last_date': last_date}, mimetype='application/json')
 
 
 @app.route('/json/<city>', methods=['GET'])

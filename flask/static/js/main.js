@@ -148,3 +148,10 @@ function plot_graph_from_json(city=null, model=null, date=true, field=null) {
     }
     http.send();
 }
+
+function update_data() {
+    const url = '/update';
+    const http = new XMLHttpRequest();
+    http.open("GET", url, true);
+    http.send();
+}
