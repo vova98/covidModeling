@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 import json
-import sys
-import os
 import logging
 from datetime import datetime
 from datetime import timedelta
@@ -10,7 +8,6 @@ from flask import render_template, Flask, request, Response
 
 from api import (approximate, get_cities, get_data_field, get_models, get_dates,
                  update_data, LoggerSinglton)
-
 
 
 app = Flask(__name__)
