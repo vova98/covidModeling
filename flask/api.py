@@ -134,6 +134,11 @@ def init_base():
             Item={'id': 'rospotrebnadzor',
                   'ID': 15752,
                   'date_': last_date})
+        meta.put_item(
+            Item={'id': 'update',
+                  'time': datetime.strptime(
+                    last_date, 
+                    '%d.%m.%Y').strftime('%S.%M.%H.%d.%m.%Y')})
 
         logging.info('init new database')
     except Exception:
@@ -228,6 +233,18 @@ def update_data():
                     },
                     ReturnValues="UPDATED_NEW"
                 )
+                meta_table.update_item(
+                    Key={
+                        'id': 'update'
+                    },
+                    UpdateExpression="set time=:time",
+                    ExpressionAttributeValues={
+                        ':time': datetime.strptime(
+                            date, 
+                            '%d.%m.%Y').strftime('%S.%M.%H.%d.%m.%Y')
+                    },
+                    ReturnValues="UPDATED_NEW"
+                )
             except ClientError as e:
                 logging.info(e.response['Error']['Message'])
         ID = ID + 1
@@ -250,9 +267,15 @@ def prune_data(data, use_date_from, use_date_to):
 
     return new_data
 
+def approximate(city, models, date):
+    dynamodb = DynamoDBSingleton.get()
+    meta_table = dynamodb.Table('meta')
+    update = meta_table.get_item(Key={'id': 'update'})
+    time = update['Item']['time']
+    return _approximate(city, models, date, time)
 
 @lru_cache(maxsize=10 ** 8)
-def approximate(city, models, date):
+def _approximate(city, models, date, time):
     r"""
     :param city: город для аппроксимации
     :type city: str
