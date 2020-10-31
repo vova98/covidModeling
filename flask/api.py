@@ -60,6 +60,8 @@ class LoggerSinglton(object):
 
 def init_base():
     LoggerSinglton.init()
+    logging.info('init database')
+
     dynamodb = DynamoDBSingleton.get()
     try:
         cities = dynamodb.create_table(
@@ -93,22 +95,51 @@ def init_base():
                              'died': row[5],
                              'sick': row[6],
                              'recovered': row[7]}
+            last_date = data[data_for_city.shape[0] - 1]['date']
             try:
                 cities.put_item(
                     Item={'id': str(hashing(city)),
                           'name': city,
                           'from': data[0]['date'],
-                          'to_': data[data_for_city.shape[0] - 1]['date'],
+                          'to_': last_date,
                           'data_': json.dumps(data)})
             except ClientError as e:
                 logging.info(e.response['Error']['Message'])
-        cities.put_item(
-            Item={'id': str('-1'),
-                  'ID': 15752,
-                  'date_': '22.10.2020'})
+        # cities.put_item(
+        #     Item={'id': str('-1'),
+        #           'ID': 15752,
+        #           'date_': '22.10.2020'})
 
+        meta = dynamodb.create_table(
+            TableName='meta',
+            KeySchema=[
+                {
+                    'AttributeName': 'id',
+                    'KeyType': 'HASH'
+                },
+            ],
+            AttributeDefinitions=[
+                {
+                    'AttributeName': 'id',
+                    'AttributeType': 'S'
+                },
+            ],
+            ProvisionedThroughput={
+                'ReadCapacityUnits': 5,
+                'WriteCapacityUnits': 5
+            }
+        )
+
+        meta.put_item(
+            Item={'id': 'rospotrebnadzor',
+                  'ID': 15752,
+                  'date_': last_date})
+
+        logging.info('init new database')
     except Exception:
+        logging.info('load database from checkpoint')
         cities = dynamodb.Table('cities')
+        meta = dynamodb.Table('meta')
         pass
 
 
@@ -170,22 +201,25 @@ def update_data():
 
     dynamodb = DynamoDBSingleton.get()
     cities_table = dynamodb.Table('cities')
-    ID_item = cities_table.get_item(Key={'id': '-1'})
+    meta_table = dynamodb.Table('meta')
+
+    ID_item = meta_table.get_item(Key={'id': 'rospotrebnadzor'})
     ID = ID_item['Item']['ID'] + 1
     date = ID_item['Item']['date_']
     yesterday = datetime.today() - timedelta(days=1)
 
     mapping = map_names()
     while pd.to_datetime(date).date() < yesterday.date():
+        logging.info('parse page {}'.format(ID))
         page = requests.get(url % ID)
         soup = BeautifulSoup(page.text, features='lxml')
         header = soup.find('h1').text
         if header == right_article_name:
             date = parse_page(soup, mapping, cities_table)
             try:
-                cities_table.update_item(
+                meta_table.update_item(
                     Key={
-                        'id': '-1'
+                        'id': 'rospotrebnadzor'
                     },
                     UpdateExpression="set ID=:ID, date_=:date",
                     ExpressionAttributeValues={
@@ -202,6 +236,9 @@ def update_data():
 
 
 def prune_data(data, use_date_from, use_date_to):
+    r"""
+
+    """
     use_date_from = datetime.strptime(use_date_from, '%d.%m.%Y')
     use_date_to = datetime.strptime(use_date_to, '%d.%m.%Y')
 
