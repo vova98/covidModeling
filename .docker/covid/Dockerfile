@@ -55,5 +55,5 @@ RUN mv /app/crontab /etc/cron.d/updatetask
 RUN chmod 0644 /etc/cron.d/updatetask
 RUN service cron start
 
-CMD /bin/bash /app/flask.sh ${PORT}
+CMD service cron start && /bin/bash /app/flask.sh ${PORT}
 
