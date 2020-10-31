@@ -276,7 +276,7 @@ def approximate(city, models, date):
     dynamodb = DynamoDBSingleton.get()
     meta_table = dynamodb.Table('meta')
     update = meta_table.get_item(Key={'id': 'update'})
-    time = update['Item']['time']
+    time = update['Item']['date']
     return _approximate(city, models, date, time)
 
 @lru_cache(maxsize=10 ** 8)
