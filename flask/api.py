@@ -136,7 +136,7 @@ def init_base():
                   'date_': last_date})
         meta.put_item(
             Item={'id': 'update',
-                  'time': datetime.strptime(
+                  'date_': datetime.strptime(
                     last_date, 
                     '%d.%m.%Y').strftime('%S.%M.%H.%d.%m.%Y')})
 
@@ -211,9 +211,13 @@ def update_data():
     ID_item = meta_table.get_item(Key={'id': 'rospotrebnadzor'})
     ID = ID_item['Item']['ID'] + 1
     date = ID_item['Item']['date_']
-    yesterday = datetime.today() - timedelta(days=1)
 
+    yesterday = datetime.today() - timedelta(days=1)
     mapping = map_names()
+
+    logging.info('initial parse ID={} date={} yesterday={}'.format(
+        ID, date, yesterday.strftime('%S.%M.%H.%d.%m.%Y')))
+
     while pd.to_datetime(date).date() < yesterday.date():
         logging.info('parse page {}'.format(ID))
         page = requests.get(url % ID)
@@ -237,9 +241,9 @@ def update_data():
                     Key={
                         'id': 'update'
                     },
-                    UpdateExpression="set time=:time",
+                    UpdateExpression="set date_=:date",
                     ExpressionAttributeValues={
-                        ':time': datetime.strptime(
+                        ':date': datetime.strptime(
                             date, 
                             '%d.%m.%Y').strftime('%S.%M.%H.%d.%m.%Y')
                     },
@@ -248,6 +252,7 @@ def update_data():
             except ClientError as e:
                 logging.info(e.response['Error']['Message'])
         ID = ID + 1
+
     logging.info('end of update')
     return date
 
