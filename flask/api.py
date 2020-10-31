@@ -53,7 +53,7 @@ class LoggerSinglton(object):
         if not LoggerSinglton._init:
             LoggerSinglton._init = True
             logging.basicConfig(filename='logs.log',
-                    level=logging.DEBUG,
+                    level=logging.INFO,
                     format='%(asctime)s.%(msecs)03d %(levelname)s:%(funcName)s:%(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
             logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
