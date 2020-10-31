@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import inspect
 import json
 import hashlib
+import logging
 from functools import lru_cache
 from pathlib import Path
 import re
@@ -85,7 +86,7 @@ def init_base():
                           'to_': data[data_for_city.shape[0] - 1]['date'],
                           'data_': json.dumps(data)})
             except ClientError as e:
-                print(e.response['Error']['Message'])
+                logging.info(e.response['Error']['Message'])
         cities.put_item(
             Item={'id': str('-1'),
                   'ID': 15752,
@@ -121,7 +122,7 @@ def parse_page(soup, mapping, cities_table):
             try:
                 get_city = cities_table.get_item(Key={'id': str(city_id)})
                 if 'Item' not in get_city:
-                    print('bad city name', result.group(1))
+                    logging.info('bad city name', result.group(1))
                     continue
                 data_from_base = json.loads(get_city['Item']['data_'])
 
@@ -139,12 +140,12 @@ def parse_page(soup, mapping, cities_table):
                     ReturnValues="UPDATED_NEW"
                 )
             except ClientError as e:
-                print(e.response['Error']['Message'])
+                logging.info(e.response['Error']['Message'])
     return date
 
 
 def update_data():
-    print('start of update')
+    logging.info('start of update')
     url = 'https://www.rospotrebnadzor.ru/about/info/news/news_details.php?' \
           'ELEMENT_ID=%d'
     right_article_name = ' О подтвержденных случаях новой коронавирусной ' \
@@ -177,9 +178,9 @@ def update_data():
                     ReturnValues="UPDATED_NEW"
                 )
             except ClientError as e:
-                print(e.response['Error']['Message'])
+                logging.info(e.response['Error']['Message'])
         ID = ID + 1
-    print('end of update')
+    logging.info('end of update')
     return date
 
 
