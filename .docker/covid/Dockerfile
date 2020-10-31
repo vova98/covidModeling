@@ -13,7 +13,8 @@ RUN apt-get update  \
        libblas-dev\
        liblapack-dev\
        software-properties-common\
-       locales
+       locales\
+       cron
 
 RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 
 ENV LANG en_US.utf8
@@ -48,6 +49,10 @@ RUN rm -rf /tmp/* /root/.cache/*
 COPY ./flask /app
 
 WORKDIR /app/
+
+RUN mv /app/crontab /etc/cron.d/update-task
+RUN chmod 0644 /etc/cron.d/update-task
+RUN service cron start
 
 CMD /bin/bash /app/flask.sh ${PORT}
 
