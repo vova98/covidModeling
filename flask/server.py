@@ -15,7 +15,7 @@ from api import (approximate, get_cities, get_data_field, get_models, get_dates,
 
 app = Flask(__name__)
 
-logging.basicConfig(filename=os.path.join(dump_path, '/logs/logs.log'),
+logging.basicConfig(filename='/logs/logs.log',
                     level=logging.INFO,
                     format='%(asctime)s.%(msecs)03d %(levelname)s:%(funcName)s:%(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
