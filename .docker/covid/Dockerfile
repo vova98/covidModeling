@@ -51,8 +51,8 @@ RUN mkdir /logs
 
 WORKDIR /app/
 
-RUN mv /app/crontab /etc/cron.d/update-task
-RUN chmod 0644 /etc/cron.d/update-task
+RUN mv /app/crontab /etc/cron.d/updatetask
+RUN chmod 0644 /etc/cron.d/updatetask
 RUN service cron start
 
 CMD /bin/bash /app/flask.sh ${PORT}
