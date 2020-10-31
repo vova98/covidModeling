@@ -9,24 +9,20 @@ from datetime import timedelta
 from flask import render_template, Flask, request, Response
 
 from api import (approximate, get_cities, get_data_field, get_models, get_dates,
-                 update_data)
+                 update_data, LoggerSinglton)
 
 
 
 app = Flask(__name__)
 
-logging.basicConfig(filename='logs.log',
-                    level=logging.INFO,
-                    format='%(asctime)s.%(msecs)03d %(levelname)s:%(funcName)s:%(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
-logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
-
-
-
+LoggerSinglton.init()
 
 @app.route('/')
 @app.route('/main')
 def main():
+    LoggerSinglton.init()
+    logging.debug('new connection')
+
     models = get_models(with_approximator=False)
     cities = get_cities()
     fields = get_data_field()

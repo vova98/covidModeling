@@ -17,7 +17,7 @@ import requests
 
 import covidlib
 
-Yandex_data_path = Path('data/Cities_to_22_10.csv').resolve()
+Yandex_data_path = Path('data/dump_cities.csv').resolve()
 Name_mapping_path = Path('data/mapping.txt').resolve()
 
 
@@ -43,8 +43,21 @@ class DynamoDBSingleton(object):
         else:
             return DynamoDBSingleton.load()
 
+class LoggerSinglton(object):
+    _init = False
+
+    @staticmethod
+    def init():
+        if not LoggerSinglton._init:
+            LoggerSinglton._init = True
+            logging.basicConfig(filename='logs.log',
+                    level=logging.DEBUG,
+                    format='%(asctime)s.%(msecs)03d %(levelname)s:%(funcName)s:%(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
+            logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 def init_base():
+    LoggerSinglton.init()
     dynamodb = DynamoDBSingleton.get()
     try:
         cities = dynamodb.create_table(
@@ -107,6 +120,7 @@ def map_names():
 
 
 def parse_page(soup, mapping, cities_table):
+    LoggerSinglton.init()
     date = soup.find('p', {'class': 'date'}).text[:-3]
     data = soup.find('div', {'class': 'news-detail'}).text.split('\n')
     for line in data:
@@ -145,6 +159,7 @@ def parse_page(soup, mapping, cities_table):
 
 
 def update_data():
+    LoggerSinglton.init()
     logging.info('start of update')
     url = 'https://www.rospotrebnadzor.ru/about/info/news/news_details.php?' \
           'ELEMENT_ID=%d'
