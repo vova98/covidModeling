@@ -147,7 +147,7 @@
 		</div>
 	</body>
 	<script>
-		plot_graph_from_json(`{{ default_city }}`, null, false, JSON.parse(`{{fields|tojson}}`))
+		plot_graph_from_json(null, null, false, JSON.parse(`{{fields|tojson}}`))
 		set_date("predict_date_to", `{{default_dates["predict_date_to"]}}`);
 		set_date("use_date_to", `{{default_dates["use_date_to"]}}`);
 		set_date("use_date_from", `{{default_dates["use_date_from"]}}`);

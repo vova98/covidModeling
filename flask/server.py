@@ -32,7 +32,6 @@ def main():
         cities=cities,
         models=models,
         fields=fields,
-        default_city=list(cities.keys())[0],
         default_dates={
             'use_date_from': dates[0],
             'use_date_to': dates[1],

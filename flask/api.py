@@ -376,7 +376,16 @@ def get_cities():
     cities = dict()
     for item in scan_table(table):
         cities[item['id']] = item['name']
-    return cities
+
+    cities = {key: cities[key] for key in sorted(cities)}
+
+    sorted_cities = {'RU-MOW': cities['RU-MOW'],
+                     'RU-MOS': cities['RU-MOS'],
+                     'RU-SPE': cities['RU-SPE']}
+    sorted_cities.update(
+        {key: cities[key]  for key in sorted(cities) if key not in {'RU-MOW', 'RU-MOS', 'RU-SPE'}})
+
+    return sorted_cities
 
 
 def get_models(with_approximator=True):
