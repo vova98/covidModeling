@@ -354,7 +354,7 @@ def update_data(type_='stopcoronavirus'):
     meta_table = dynamodb.Table('meta')
 
     last_try_ = meta_table.get_item(Key={'id': 'update'})
-    time = update['Item']['last_try_']
+    time = last_try_['Item']['last_try_']
     time = datetime.strptime(time, '%S.%M.%H.%d.%m.%Y')
 
     ret = {}
