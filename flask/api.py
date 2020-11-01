@@ -85,35 +85,6 @@ def init_base():
                 'WriteCapacityUnits': 5
             }
         )
-        yandex_data = pd.read_csv(Yandex_data_path, delimiter=';')
-        with open(cities_codes_path) as f:
-            cities_codes = json.load(f)
-        
-        inverse_index = dict()
-        for key in cities_codes:
-            inverse_index[cities_codes[key]['yandex_name']] = key
-
-        list_of_cities = yandex_data['region'].unique()
-        for city_num, city in enumerate(list_of_cities):
-            data_for_city = yandex_data[
-                yandex_data['region'] == city].to_numpy()
-            data = {}
-            for idx, row in enumerate(data_for_city):
-                data[idx] = {'date': row[0],
-                             'died': row[5],
-                             'sick': row[6],
-                             'recovered': row[7]}
-            last_date = data[data_for_city.shape[0] - 1]['date']
-            try:
-                cities.put_item(
-                    Item={'id': inverse_index[city],
-                          'name': cities_codes[inverse_index[city]]['name'],
-                          'from': data[0]['date'],
-                          'to_': last_date,
-                          'data_': json.dumps(data)})
-            except ClientError as e:
-                logging.info(e.response['Error']['Message'])
-
         meta = dynamodb.create_table(
             TableName='meta',
             KeySchema=[
@@ -133,26 +104,52 @@ def init_base():
                 'WriteCapacityUnits': 5
             }
         )
-
-        # meta.put_item(
-        #     Item={'id': 'rospotrebnadzor',
-        #           'ID': 15752,
-        #           'date_': last_date})
-        meta.put_item(
-            Item={'id': 'update',
-                  'date_': datetime.strptime(
-                    last_date, 
-                    '%d.%m.%Y').strftime('%S.%M.%H.%d.%m.%Y')})
-        meta.put_item(
-            Item={'id': 'codes',
-                  'data_': json.dumps(cities_codes)})
-
-        logging.info('init new database')
     except Exception:
         logging.info('load database from checkpoint')
         cities = dynamodb.Table('cities')
         meta = dynamodb.Table('meta')
-        pass
+        return
+
+    yandex_data = pd.read_csv(Yandex_data_path, delimiter=';')
+    with open(cities_codes_path) as f:
+        cities_codes = json.load(f)
+    
+    inverse_index = dict()
+    for key in cities_codes:
+        inverse_index[cities_codes[key]['yandex_name']] = key
+
+    list_of_cities = yandex_data['region'].unique()
+    for city_num, city in enumerate(list_of_cities):
+        data_for_city = yandex_data[
+            yandex_data['region'] == city].to_numpy()
+        data = {}
+        for idx, row in enumerate(data_for_city):
+            data[idx] = {'date': row[0],
+                         'died': row[5],
+                         'sick': row[6],
+                         'recovered': row[7]}
+        last_date = data[data_for_city.shape[0] - 1]['date']
+        cities.put_item(
+            Item={'id': inverse_index[city],
+                  'name': cities_codes[inverse_index[city]]['name'],
+                  'from': data[0]['date'],
+                  'to_': last_date,
+                  'data_': json.dumps(data)})
+
+    # meta.put_item(
+    #     Item={'id': 'rospotrebnadzor',
+    #           'ID': 15752,
+    #           'date_': last_date})
+    meta.put_item(
+        Item={'id': 'update',
+              'date_': datetime.strptime(
+                last_date, 
+                '%d.%m.%Y').strftime('%S.%M.%H.%d.%m.%Y')})
+    meta.put_item(
+        Item={'id': 'codes',
+              'data_': json.dumps(cities_codes)})
+
+    logging.info('init new database')
 
 
 # def map_names():
@@ -400,7 +397,6 @@ def get_cities():
         response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
         for item in response['Items']:
             cities[item['id']] = item['name']
-
     return cities
 
 
