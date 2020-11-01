@@ -84,8 +84,9 @@
 										<div class="card-header" id="heading_models_{{ key }}">
 											<h5 class="mb-0">
 												<input type="checkbox" id="checkbox_models_{{ key }}" name="models_{{ key }}" onchange='plot_graph_from_json(city=null, model=JSON.parse(`{{models|tojson}}`), date=true, field=JSON.parse(`{{fields|tojson}}`))'>
-												<button for="models_{{ key }}" class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse_models_{{ key }}" aria-expanded="t" aria-controls="collapse_models_{{ key }}">
-													{{ models[key]["name"] }}
+												<br>
+												<button for="models_{{ key }}" class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse_models_{{ key }}" aria-expanded="t" aria-controls="collapse_models_{{ key }}" style="word-break: break-all; white-space: normal;">
+													{{ models[key]["name"] }}</
 												</button>
 											</h5>
 										</div>
