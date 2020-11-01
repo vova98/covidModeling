@@ -2,6 +2,12 @@
 Changelog
 #########
 
+v0.0.7
+  - improve statistics auto-update
+
+v0.0.6
+  - statistics auto-update
+
 v0.0.5
   - improve frontend
   - change matplotlib to chartJS
