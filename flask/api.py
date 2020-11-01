@@ -312,7 +312,7 @@ def update_by_stopcoronavirus():
         flag = False
         for item in info:
             if item['date'] > to_:
-                data_[data_.__len__] = {'date': item['date'].strftime('%d.%m.%Y'),
+                data_[data_.__len__()] = {'date': item['date'].strftime('%d.%m.%Y'),
                                         'died': item['died_inc'],
                                         'sick': item['sick_inc'],
                                         'recovered': item['healed_inc']}
