@@ -118,22 +118,21 @@ def init_base():
     for key in cities_codes:
         inverse_index[cities_codes[key]['yandex_name']] = key
 
-    list_of_cities = yandex_data['region'].unique()
-    for city_num, city in enumerate(list_of_cities):
+    for city in yandex_data['region'].unique():
         if city in inverse_index:
             data_for_city = yandex_data[
                 yandex_data['region'] == city].to_numpy()
             data = {}
-            for idx, row in enumerate(data_for_city):
-                data[idx] = {'date': row[0],
-                             'died': row[5],
-                             'sick': row[6],
-                             'recovered': row[7]}
+            for row in data_for_city:
+                data[data.__len__] = {'date': row[0],
+                                      'died': row[5],
+                                      'sick': row[6],
+                                      'recovered': row[7]}
             last_date = data[data_for_city.shape[0] - 1]['date']
             cities.put_item(
                 Item={'id': inverse_index[city],
                       'name': cities_codes[inverse_index[city]]['name'],
-                      'from': data[0]['date'],
+                      'from_': data[0]['date'],
                       'to_': last_date,
                       'data_': json.dumps(data)})
 
@@ -146,9 +145,6 @@ def init_base():
               'date_': datetime.strptime(
                 last_date, 
                 '%d.%m.%Y').strftime('%S.%M.%H.%d.%m.%Y')})
-    meta.put_item(
-        Item={'id': 'codes',
-              'data_': json.dumps(cities_codes)})
 
     logging.info('init new database')
 
@@ -278,20 +274,71 @@ def update_by_stopcoronavirus():
     cities_table = dynamodb.Table('cities')
     meta_table = dynamodb.Table('meta')
 
-    last_update = meta_table.get_item(Key={'id': 'update'})['Item']['date_']
-    last_update = datetime.strptime(last_update, '%S.%M.%H.%d.%m.%Y')
+    url = 'https://стопкоронавирус.рф/covid_data.json?do=region_stats&code={}'
 
-    if (last_update.date() - datetime.today().date()).days:
-        cities = get_cities()
-        url = 'https://стопкоронавирус.рф/covid_data.json?do=region_stats&code={}'
-        for key in cities:
-            logging.info('load info for {}'.format(key))
-            try:
-                page = requests.get(url.format(key))
-                info = json.loads(page.text)
-            except Exception as e:
-                logging.info(e)
+    cities = get_cities()
+    
+    for key in cities:
+        logging.info('load info for {}'.format(key))
 
+        city_item = cities_table.get_item(Key={'id': key})
+        if 'Item' not in city_item:
+            logging.info('bad city {}'.foramat(key))
+            continue
+
+        to_ = datetime.strptime(city_item['Item']['to_'], '%d.%m.%Y')
+        data_ = json.loads(city_item['Item']['data_'])
+
+        if to_.date() >= datetime.today().date():
+            logging.info('nothing to update for {}'.format(key))
+            continue
+
+        page = requests.get(url.format(key))
+        info = page.json()
+        for item in info:
+            item['date'] = datetime.strptime(item['date'], '%d.%m.%Y')
+            item['sick'] = int(item['sick'])
+            item['healed'] = int(item['healed'])
+            item['died'] = int(item['died'])
+            
+        info = sorted(info, key=lambda x: x['date'])
+
+        for i in range(1, len(info)):
+            info[i]['sick_inc'] = info[i]['sick'] - info[i-1]['sick']
+            info[i]['healed_inc'] = info[i]['healed'] - info[i-1]['healed']
+            info[i]['died_inc'] = info[i]['died'] - info[i-1]['died']
+            
+        info = info[1:]
+        flag = False
+        for item in info:
+            if item['date'] > to_:
+                data_[data_.__len__] = {'date': item['date'].strftime('%d.%m.%Y'),
+                                        'died': item['died_inc'],
+                                        'sick': item['sick_inc'],
+                                        'recovered': item['healed_inc']}
+                to_ = item['date']
+                flag = True
+
+        if flag:
+            logging.info('update info for {}'.format(key))
+            cities_table.update_item(
+                Key={'id': key},
+                UpdateExpression="set to_=:date, data_=:data",
+                ExpressionAttributeValues={
+                    ':date': to_,
+                    ':data': json.dumps(data_)},
+                ReturnValues="UPDATED_NEW")
+
+            meta_table.update_item(
+                Key={'id': 'update'},
+                UpdateExpression="set date_=:date",
+                ExpressionAttributeValues={
+                    ':date': datetime.today().strftime('%S.%M.%H.%d.%m.%Y')
+                },
+                ReturnValues="UPDATED_NEW"
+            )
+        else:
+            logging.info('nothing to update for {}'.format(key))
 
     logging.info('end parse stopcoronavirus')
     return None
@@ -380,7 +427,7 @@ def get_dates(city):
     if 'Item' not in response:
         return '01.01.2020', '01.10.2020'
 
-    return response['Item']['from'], response['Item']['to_']
+    return response['Item']['from_'], response['Item']['to_']
 
 def scan_table(table):
     response = table.scan()
@@ -398,7 +445,7 @@ def get_stats():
     for item in scan_table(table):
         cities[item['id']] = dict()
         cities[item['id']]['name'] = item['name']
-        cities[item['id']]['from'] = item['from']
+        cities[item['id']]['from'] = item['from_']
         cities[item['id']]['to'] = item['to_']
 
     return cities
