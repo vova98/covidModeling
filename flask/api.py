@@ -356,14 +356,18 @@ def update_data(type_='stopcoronavirus'):
     last_try_ = meta_table.get_item(Key={'id': 'update'})
     time = last_try_['Item']['last_try_']
     time = datetime.strptime(time, '%S.%M.%H.%d.%m.%Y')
+    current_time = datetime.today()
 
     ret = {}
-    if (time - datetime.today()).seconds > 3600:
+    if (current_time - time).seconds > 3600:
+        logging.info('previous try = {}, now = {}'.format(
+            time.strftime('%S:%M:%H/%d.%m.%Y'), 
+            current_time.strftime('%S:%M:%H/%d.%m.%Y')))
         meta_table.update_item(
             Key={'id': 'update'},
             UpdateExpression="set last_try_=:date",
             ExpressionAttributeValues={
-                ':date': datetime.today().strftime('%S.%M.%H.%d.%m.%Y')
+                ':date': current_time.strftime('%S.%M.%H.%d.%m.%Y')
             },
             ReturnValues="UPDATED_NEW"
         )
