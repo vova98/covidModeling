@@ -47,7 +47,6 @@ RUN rm -rf /tmp/* /root/.cache/* \
 RUN rm -rf /tmp/* /root/.cache/*
 
 COPY ./flask /app
-RUN mkdir /logs
 
 WORKDIR /app/
 

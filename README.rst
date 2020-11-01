@@ -11,8 +11,12 @@ Modeling of COVID-19 spreading
 .. |deploy| image:: https://github.com/vova98/covidModeling/workflows/Publish%20Docker%20image/badge.svg
     :target: https://github.com/vova98/covidModeling/actions
     :alt: Deploy
-    
-    
+
+Description
+===========
+
+Данные по заболеваемости в регионах Российской Федерации взяты с `сайта <https://стопкоронавирус.рф/information/>`_.
+
 Requirements
 ============
 

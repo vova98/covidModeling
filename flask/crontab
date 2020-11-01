@@ -1,2 +1,2 @@
-0 * * * * root /bin/bash /app/update_date.sh
+* 12,14 * * * root curl -v http://127.0.0.1/update
 # Mandatory blank line
