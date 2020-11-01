@@ -371,6 +371,8 @@ def update_data(type_='stopcoronavirus'):
         #     return update_by_rospotrebnadzor()
         if type_ == 'stopcoronavirus':
             ret = update_by_stopcoronavirus()
+    else:
+        logging.info('too frequent database update request')
 
     logging.info('end of update')
     return date
