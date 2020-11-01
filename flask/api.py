@@ -274,6 +274,8 @@ def update_by_stopcoronavirus():
     cities_table = dynamodb.Table('cities')
     meta_table = dynamodb.Table('meta')
 
+    
+
     url = 'https://стопкоронавирус.рф/covid_data.json?do=region_stats&code={}'
 
     cities = get_cities()
@@ -341,7 +343,7 @@ def update_by_stopcoronavirus():
             logging.info('nothing to update for {}'.format(key))
 
     logging.info('end parse stopcoronavirus')
-    return None
+    return {}
 
 def update_data(type_='stopcoronavirus'):
     LoggerSinglton.init()

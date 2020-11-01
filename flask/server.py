@@ -46,8 +46,7 @@ def stats():
 
 @app.route('/update', methods=['GET'])
 def update():
-    last_date = update_data()
-    return Response({'last_date': last_date}, mimetype='application/json')
+    return Response(json.dumps(update_data()), mimetype='application/json')
 
 
 @app.route('/json/<city>', methods=['GET'])
