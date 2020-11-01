@@ -144,6 +144,9 @@ def init_base():
         Item={'id': 'update',
               'date_': datetime.strptime(
                 last_date, 
+                '%d.%m.%Y').strftime('%S.%M.%H.%d.%m.%Y'),
+              'last_try_': datetime.strptime(
+                last_date, 
                 '%d.%m.%Y').strftime('%S.%M.%H.%d.%m.%Y')})
 
     logging.info('init new database')
@@ -274,8 +277,6 @@ def update_by_stopcoronavirus():
     cities_table = dynamodb.Table('cities')
     meta_table = dynamodb.Table('meta')
 
-    
-
     url = 'https://стопкоронавирус.рф/covid_data.json?do=region_stats&code={}'
 
     cities = get_cities()
@@ -349,10 +350,27 @@ def update_data(type_='stopcoronavirus'):
     LoggerSinglton.init()
     logging.info('start of update')
 
-    # if type_ == 'rospotrebnadzor':
-    #     return update_by_rospotrebnadzor()
-    if type_ == 'stopcoronavirus':
-        return update_by_stopcoronavirus()
+    dynamodb = DynamoDBSingleton.get()
+    meta_table = dynamodb.Table('meta')
+
+    last_try_ = meta_table.get_item(Key={'id': 'update'})
+    time = update['Item']['last_try_']
+    time = datetime.strptime(time, '%S.%M.%H.%d.%m.%Y')
+
+    ret = {}
+    if (time - datetime.today()).seconds > 3600:
+        meta_table.update_item(
+            Key={'id': 'update'},
+            UpdateExpression="set last_try_=:date",
+            ExpressionAttributeValues={
+                ':date': datetime.today().strftime('%S.%M.%H.%d.%m.%Y')
+            },
+            ReturnValues="UPDATED_NEW"
+        )
+        # if type_ == 'rospotrebnadzor':
+        #     return update_by_rospotrebnadzor()
+        if type_ == 'stopcoronavirus':
+            ret = update_by_stopcoronavirus()
 
     logging.info('end of update')
     return date
