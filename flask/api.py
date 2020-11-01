@@ -20,11 +20,13 @@ import requests
 import covidlib
 
 Yandex_data_path = Path('data/dump_cities.csv').resolve()
-Name_mapping_path = Path('data/mapping.txt').resolve()
+# Name_mapping_path = Path('data/mapping.txt').resolve()
+
+cities_codes_path = Path('data/mapping.json').resolve()
 
 
-def hashing(city):
-    return int(hashlib.sha1(city.encode('cp1251')).hexdigest(), 16) % (10 ** 6)
+# def hashing(city):
+#     return int(hashlib.sha1(city.encode('cp1251')).hexdigest(), 16) % (10 ** 6)
 
 
 class DynamoDBSingleton(object):
@@ -84,6 +86,12 @@ def init_base():
             }
         )
         yandex_data = pd.read_csv(Yandex_data_path, delimiter=';')
+        with open(cities_codes_path) as f:
+            cities_codes = json.load(f)
+        
+        inverse_index = dict()
+        for key in cities_codes:
+            inverse_index[cities_codes[key]['yandex_name']] = key
 
         list_of_cities = yandex_data['region'].unique()
         for city_num, city in enumerate(list_of_cities):
@@ -98,17 +106,13 @@ def init_base():
             last_date = data[data_for_city.shape[0] - 1]['date']
             try:
                 cities.put_item(
-                    Item={'id': str(hashing(city)),
-                          'name': city,
+                    Item={'id': inverse_index[city],
+                          'name': cities_codes[inverse_index[city]]['name'],
                           'from': data[0]['date'],
                           'to_': last_date,
                           'data_': json.dumps(data)})
             except ClientError as e:
                 logging.info(e.response['Error']['Message'])
-        # cities.put_item(
-        #     Item={'id': str('-1'),
-        #           'ID': 15752,
-        #           'date_': '22.10.2020'})
 
         meta = dynamodb.create_table(
             TableName='meta',
@@ -130,15 +134,18 @@ def init_base():
             }
         )
 
-        meta.put_item(
-            Item={'id': 'rospotrebnadzor',
-                  'ID': 15752,
-                  'date_': last_date})
+        # meta.put_item(
+        #     Item={'id': 'rospotrebnadzor',
+        #           'ID': 15752,
+        #           'date_': last_date})
         meta.put_item(
             Item={'id': 'update',
                   'date_': datetime.strptime(
                     last_date, 
                     '%d.%m.%Y').strftime('%S.%M.%H.%d.%m.%Y')})
+        meta.put_item(
+            Item={'id': 'codes',
+                  'data_': json.dumps(cities_codes)})
 
         logging.info('init new database')
     except Exception:
@@ -148,114 +155,160 @@ def init_base():
         pass
 
 
-def map_names():
-    mapping = {}
-    with open(Name_mapping_path) as file:
-        for line in file:
-            from_news, from_yandex = line[:-1].split(':')
-            mapping[from_news] = from_yandex
-    return mapping
+# def map_names():
+#     mapping = {}
+#     with open(Name_mapping_path) as file:
+#         for line in file:
+#             from_news, from_yandex = line[:-1].split(':')
+#             mapping[from_news] = from_yandex
+#     return mapping
 
 
-def parse_page(soup, mapping, cities_table):
+#
+# Данный код имеет уязвимость бесконечного цикла
+# баг при парсинге роспотребнадзора
+# НАЧАЛО
+#
+# def parse_page_rospotrebnadzor(soup, mapping, cities_table):
+#     LoggerSinglton.init()
+#     date = soup.find('p', {'class': 'date'}).text[:-3]
+#     data = soup.find('div', {'class': 'news-detail'}).text.split('\n')
+#     for line in data:
+#         result = re.search(r'\d+\. ([\w ()-]+) - (\d+)', line)
+#         if result is not None:
+#             city_name = result.group(1) if result.group(1) not in mapping \
+#                 else mapping[result.group(1)]
+#             new_record = {'date': date,
+#                           'died': 0,
+#                           'sick': result.group(2),
+#                           'recovered': 0}
+#             city_id = hashing(city_name)
+#             try:
+#                 get_city = cities_table.get_item(Key={'id': str(city_id)})
+#                 if 'Item' not in get_city:
+#                     logging.info('bad city name', result.group(1))
+#                     continue
+#                 data_from_base = json.loads(get_city['Item']['data_'])
+
+#                 data_from_base[len(data_from_base.keys())] = new_record
+
+#                 cities_table.update_item(
+#                     Key={
+#                         'id': str(city_id)
+#                     },
+#                     UpdateExpression="set to_=:date, data_=:data",
+#                     ExpressionAttributeValues={
+#                         ':date': date,
+#                         ':data': json.dumps(data_from_base)
+#                     },
+#                     ReturnValues="UPDATED_NEW"
+#                 )
+#             except ClientError as e:
+#                 logging.info(e.response['Error']['Message'])
+#     return date
+
+
+# def update_by_rospotrebnadzor():
+#     LoggerSinglton.init()
+#     logging.info('start parse rospotrebnadzor')
+#     url = 'https://www.rospotrebnadzor.ru/about/info/news/news_details.php?' \
+#           'ELEMENT_ID=%d'
+#     right_article_name = ' О подтвержденных случаях новой коронавирусной ' \
+#                          'инфекции COVID-2019 в России'
+
+#     dynamodb = DynamoDBSingleton.get()
+#     cities_table = dynamodb.Table('cities')
+#     meta_table = dynamodb.Table('meta')
+
+#     ID_item = meta_table.get_item(Key={'id': 'rospotrebnadzor'})
+#     ID = ID_item['Item']['ID'] + 1
+#     date = ID_item['Item']['date_']
+
+#     yesterday = datetime.today() - timedelta(days=1)
+#     mapping = map_names()
+
+#     logging.info('initial parse ID={} date={} yesterday={}'.format(
+#         ID, date, yesterday.strftime('%S.%M.%H.%d.%m.%Y')))
+
+#     while pd.to_datetime(date).date() < yesterday.date():
+#         logging.info('parse page {}'.format(ID))
+#         page = requests.get(url % ID)
+#         soup = BeautifulSoup(page.text, features='lxml')
+#         header = soup.find('h1').text
+#         if header == right_article_name:
+#             date = parse_page(soup, mapping, cities_table)
+#             try:
+#                 meta_table.update_item(
+#                     Key={
+#                         'id': 'rospotrebnadzor'
+#                     },
+#                     UpdateExpression="set ID=:ID, date_=:date",
+#                     ExpressionAttributeValues={
+#                         ':ID': ID,
+#                         ':date': date
+#                     },
+#                     ReturnValues="UPDATED_NEW"
+#                 )
+#                 meta_table.update_item(
+#                     Key={
+#                         'id': 'update'
+#                     },
+#                     UpdateExpression="set date_=:date",
+#                     ExpressionAttributeValues={
+#                         ':date': datetime.strptime(
+#                             date, 
+#                             '%d.%m.%Y').strftime('%S.%M.%H.%d.%m.%Y')
+#                     },
+#                     ReturnValues="UPDATED_NEW"
+#                 )
+#             except ClientError as e:
+#                 logging.info(e.response['Error']['Message'])
+#         ID = ID + 1
+#     logging.info('end parse rospotrebnadzor')
+#     return date
+
+#
+# Данный код имеет уязвимость бесконечного цикла
+# баг при парсинге роспотребнадзора
+# КОНЕЦ
+#
+
+def update_by_stopcoronavirus():
     LoggerSinglton.init()
-    date = soup.find('p', {'class': 'date'}).text[:-3]
-    data = soup.find('div', {'class': 'news-detail'}).text.split('\n')
-    for line in data:
-        result = re.search(r'\d+\. ([\w ()-]+) - (\d+)', line)
-        if result is not None:
-            city_name = result.group(1) if result.group(1) not in mapping \
-                else mapping[result.group(1)]
-            new_record = {'date': date,
-                          'died': 0,
-                          'sick': result.group(2),
-                          'recovered': 0}
-            city_id = hashing(city_name)
-            try:
-                get_city = cities_table.get_item(Key={'id': str(city_id)})
-                if 'Item' not in get_city:
-                    logging.info('bad city name', result.group(1))
-                    continue
-                data_from_base = json.loads(get_city['Item']['data_'])
-
-                data_from_base[len(data_from_base.keys())] = new_record
-
-                cities_table.update_item(
-                    Key={
-                        'id': str(city_id)
-                    },
-                    UpdateExpression="set to_=:date, data_=:data",
-                    ExpressionAttributeValues={
-                        ':date': date,
-                        ':data': json.dumps(data_from_base)
-                    },
-                    ReturnValues="UPDATED_NEW"
-                )
-            except ClientError as e:
-                logging.info(e.response['Error']['Message'])
-    return date
-
-
-def update_data():
-    LoggerSinglton.init()
-    logging.info('start of update')
-    url = 'https://www.rospotrebnadzor.ru/about/info/news/news_details.php?' \
-          'ELEMENT_ID=%d'
-    right_article_name = ' О подтвержденных случаях новой коронавирусной ' \
-                         'инфекции COVID-2019 в России'
-
+    logging.info('start parse stopcoronavirus')
     dynamodb = DynamoDBSingleton.get()
     cities_table = dynamodb.Table('cities')
     meta_table = dynamodb.Table('meta')
 
-    ID_item = meta_table.get_item(Key={'id': 'rospotrebnadzor'})
-    ID = ID_item['Item']['ID'] + 1
-    date = ID_item['Item']['date_']
+    last_update = meta_table.get_item(Key={'id': 'update'})['Item']['date_']
+    last_update = datetime.strptime(last_update, '%S.%M.%H.%d.%m.%Y')
 
-    yesterday = datetime.today() - timedelta(days=1)
-    mapping = map_names()
-
-    logging.info('initial parse ID={} date={} yesterday={}'.format(
-        ID, date, yesterday.strftime('%S.%M.%H.%d.%m.%Y')))
-
-    while pd.to_datetime(date).date() < yesterday.date():
-        logging.info('parse page {}'.format(ID))
-        page = requests.get(url % ID)
-        soup = BeautifulSoup(page.text, features='lxml')
-        header = soup.find('h1').text
-        if header == right_article_name:
-            date = parse_page(soup, mapping, cities_table)
+    if (last_update.date() - datetime.today().date()).days:
+        cities = get_cities()
+        url = 'https://стопкоронавирус.рф/covid_data.json?do=region_stats&code={}'
+        for key in cities:
+            logging.info('load info for {}'.format(key))
             try:
-                meta_table.update_item(
-                    Key={
-                        'id': 'rospotrebnadzor'
-                    },
-                    UpdateExpression="set ID=:ID, date_=:date",
-                    ExpressionAttributeValues={
-                        ':ID': ID,
-                        ':date': date
-                    },
-                    ReturnValues="UPDATED_NEW"
-                )
-                meta_table.update_item(
-                    Key={
-                        'id': 'update'
-                    },
-                    UpdateExpression="set date_=:date",
-                    ExpressionAttributeValues={
-                        ':date': datetime.strptime(
-                            date, 
-                            '%d.%m.%Y').strftime('%S.%M.%H.%d.%m.%Y')
-                    },
-                    ReturnValues="UPDATED_NEW"
-                )
-            except ClientError as e:
-                logging.info(e.response['Error']['Message'])
-        ID = ID + 1
+                page = requests.get(url.format(key))
+                info = json.loads(page.text)
+            except Exception as e:
+                logging.info(e)
+
+
+    logging.info('end parse stopcoronavirus')
+    return None
+
+def update_data(type_='stopcoronavirus'):
+    LoggerSinglton.init()
+    logging.info('start of update')
+
+    # if type_ == 'rospotrebnadzor':
+    #     return update_by_rospotrebnadzor()
+    if type_ == 'stopcoronavirus':
+        return update_by_stopcoronavirus()
 
     logging.info('end of update')
     return date
-
 
 def prune_data(data, use_date_from, use_date_to):
     r"""
@@ -335,8 +388,18 @@ def get_dates(city):
 def get_cities():
     dynamodb = DynamoDBSingleton.get()
     table = dynamodb.Table('cities')
-    ret = table.scan()['Items']
-    return {item['id']: item['name'] for item in ret if 'name' in item.keys()}
+
+    cities = dict()
+
+    response = table.scan()
+    for item in response['Items']:
+        cities[item['id']] = item['name']
+    while 'LastEvaluatedKey' in response:
+        response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+        for item in response['Items']:
+            cities[item['id']] = item['name']
+
+    return cities
 
 
 def get_models(with_approximator=True):
