@@ -124,11 +124,11 @@ def init_base():
                 yandex_data['region'] == city].to_numpy()
             data = {}
             for row in data_for_city:
-                data[data.__len__] = {'date': row[0],
+                data[data.__len__()] = {'date': row[0],
                                       'died': row[5],
                                       'sick': row[6],
                                       'recovered': row[7]}
-            last_date = data[data_for_city.shape[0] - 1]['date']
+            last_date = data[data.__len__() - 1]['date']
             cities.put_item(
                 Item={'id': inverse_index[city],
                       'name': cities_codes[inverse_index[city]]['name'],
