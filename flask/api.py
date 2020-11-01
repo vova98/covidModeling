@@ -34,15 +34,11 @@ class DynamoDBSingleton(object):
 
     @staticmethod
     def load():
-        # DynamoDBSingleton._dynamodb = boto3.resource(
-        #     'dynamodb',
-        #     region_name="us-west-2",
-        #     endpoint_url="http://localhost:8000")
-        # return DynamoDBSingleton._dynamodb
-        return boto3.resource(
+        DynamoDBSingleton._dynamodb = boto3.resource(
             'dynamodb',
             region_name="us-west-2",
             endpoint_url="http://localhost:8000")
+        return DynamoDBSingleton._dynamodb
 
     @staticmethod
     def get():
