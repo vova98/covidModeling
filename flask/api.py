@@ -382,8 +382,26 @@ def get_dates(city):
 
     return response['Item']['from'], response['Item']['to_']
 
+def scan_table(table):
+    response = table.scan()
+    yield from response['Items']
+
+    while 'LastEvaluatedKey' in response:
+        response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+        yield from response['Items']
+
 def get_stats():
-    return {}
+    dynamodb = DynamoDBSingleton.get()
+    table = dynamodb.Table('cities')
+
+    cities = dict()
+    for item in scan_table(table):
+        cities[item['id']] = dict()
+        cities[item['id']]['name'] = item['name']
+        cities[item['id']]['from'] = item['from']
+        cities[item['id']]['to'] = item['to_']
+
+    return cities
 
 def get_cities():
     dynamodb = DynamoDBSingleton.get()
@@ -391,13 +409,9 @@ def get_cities():
 
     cities = dict()
 
-    response = table.scan()
-    for item in response['Items']:
+    cities = dict()
+    for item in scan_table(table):
         cities[item['id']] = item['name']
-    while 'LastEvaluatedKey' in response:
-        response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
-        for item in response['Items']:
-            cities[item['id']] = item['name']
     return cities
 
 
