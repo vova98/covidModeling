@@ -318,14 +318,14 @@ def update_by_stopcoronavirus():
                                         'recovered': item['healed_inc']}
                 to_ = item['date']
                 flag = True
-
+        
         if flag:
             logging.info('update info for {}'.format(key))
             cities_table.update_item(
                 Key={'id': key},
                 UpdateExpression="set to_=:date, data_=:data",
                 ExpressionAttributeValues={
-                    ':date': to_,
+                    ':date': to_.strftime('%d.%m.%Y'),
                     ':data': json.dumps(data_)},
                 ReturnValues="UPDATED_NEW")
 

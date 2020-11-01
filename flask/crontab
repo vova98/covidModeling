@@ -1,2 +1,2 @@
-0 * * * * root /bin/bash /app/update_date.sh
+* * * * * root /bin/bash /app/update_date.sh
 # Mandatory blank line
