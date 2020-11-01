@@ -373,9 +373,10 @@ def update_data(type_='stopcoronavirus'):
             ret = update_by_stopcoronavirus()
     else:
         logging.info('too frequent database update request')
+        ret = {}
 
     logging.info('end of update')
-    return date
+    return ret
 
 def prune_data(data, use_date_from, use_date_to):
     r"""
