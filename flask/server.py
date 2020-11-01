@@ -7,7 +7,7 @@ from datetime import timedelta
 from flask import render_template, Flask, request, Response
 
 from api import (approximate, get_cities, get_data_field, get_models, get_dates,
-                 update_data, LoggerSinglton)
+                 update_data, LoggerSinglton, get_stats)
 
 
 app = Flask(__name__)
@@ -38,6 +38,10 @@ def main():
             'use_date_to': dates[1],
             'predict_date_to': dates[2],
         })
+
+@app.route('/stats')
+def stats():
+    return Response(get_stats(), mimetype='application/json')
 
 
 @app.route('/update', methods=['GET'])

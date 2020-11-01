@@ -384,6 +384,8 @@ def get_dates(city):
 
     return response['Item']['from'], response['Item']['to_']
 
+def get_stats():
+    return {}
 
 def get_cities():
     dynamodb = DynamoDBSingleton.get()
