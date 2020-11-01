@@ -41,7 +41,7 @@ def main():
 
 @app.route('/stats')
 def stats():
-    return Response(get_stats(), mimetype='application/json')
+    return Response(json.dumps(get_stats()), mimetype='application/json')
 
 
 @app.route('/update', methods=['GET'])
