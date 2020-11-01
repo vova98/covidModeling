@@ -120,21 +120,22 @@ def init_base():
 
     list_of_cities = yandex_data['region'].unique()
     for city_num, city in enumerate(list_of_cities):
-        data_for_city = yandex_data[
-            yandex_data['region'] == city].to_numpy()
-        data = {}
-        for idx, row in enumerate(data_for_city):
-            data[idx] = {'date': row[0],
-                         'died': row[5],
-                         'sick': row[6],
-                         'recovered': row[7]}
-        last_date = data[data_for_city.shape[0] - 1]['date']
-        cities.put_item(
-            Item={'id': inverse_index[city],
-                  'name': cities_codes[inverse_index[city]]['name'],
-                  'from': data[0]['date'],
-                  'to_': last_date,
-                  'data_': json.dumps(data)})
+        if city in inverse_index:
+            data_for_city = yandex_data[
+                yandex_data['region'] == city].to_numpy()
+            data = {}
+            for idx, row in enumerate(data_for_city):
+                data[idx] = {'date': row[0],
+                             'died': row[5],
+                             'sick': row[6],
+                             'recovered': row[7]}
+            last_date = data[data_for_city.shape[0] - 1]['date']
+            cities.put_item(
+                Item={'id': inverse_index[city],
+                      'name': cities_codes[inverse_index[city]]['name'],
+                      'from': data[0]['date'],
+                      'to_': last_date,
+                      'data_': json.dumps(data)})
 
     # meta.put_item(
     #     Item={'id': 'rospotrebnadzor',
