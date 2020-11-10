@@ -24,8 +24,12 @@ def main():
     cities = get_cities()
     fields = get_data_field()
     dates = get_dates(list(cities.keys())[0])
-    dates = dates + ((datetime.strptime(
-        dates[1], '%d.%m.%Y') + timedelta(days=1)).strftime('%d.%m.%Y'),)
+    dates = dates + (
+    	(datetime.strptime(
+    		dates[1], '%d.%m.%Y') + timedelta(days=5)).strftime('%d.%m.%Y'),
+    	dates[0],
+    	(datetime.strptime(
+    		dates[1], '%d.%m.%Y') + timedelta(days=5)).strftime('%d.%m.%Y'),)
 
     return render_template(
         'main.html',
@@ -36,6 +40,8 @@ def main():
             'use_date_from': dates[0],
             'use_date_to': dates[1],
             'predict_date_to': dates[2],
+            'plot_date_from': dates[3],
+            'plot_date_to': dates[4],
         })
 
 @app.route('/stats')
