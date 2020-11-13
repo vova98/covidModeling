@@ -4,7 +4,6 @@ from scipy.interpolate import interp1d
 import datetime
 import numpy as np
 import pandas as pd
-import logging
 from sklearn.linear_model import Ridge
 from statsmodels.tsa.arima.model import ARIMA
 
@@ -109,7 +108,9 @@ class SplineApproximator(Approximator):
         points = sorted(list(data.keys()))
         for model in models:
             y = [data[p][model] for p in points]
-            x = [datetime.datetime.strptime(data[p]['date'], '%d.%m.%Y').timestamp() for p in points]
+            x = [datetime.datetime.strptime(data[p]['date'],
+                                            '%d.%m.%Y').timestamp() for p in
+                 points]
             self.approximators[model] = interp1d(x, y, kind=self.kind,
                                                  fill_value="extrapolate")
 
@@ -206,11 +207,12 @@ class LinearApproximator(Approximator):
         points = sorted(list(data.keys()))
         for model in models:
             y = [data[p][model] for p in points]
-            x = np.array([datetime.datetime.strptime(
-                    data[p]['date'], '%d.%m.%Y').timestamp() for p in points]).reshape([-1, 1])
+            x = np.array(
+                [datetime.datetime.strptime(data[p]['date'], '%d.%m.%Y'
+                                            ).timestamp() for p in points]
+            ).reshape([-1, 1])
             self.approximators[model] = Ridge(self.alpha)
             self.approximators[model].fit(np.reshape(x, [-1, 1]), y)
-
 
     def predict(self, date):
         r"""
@@ -256,14 +258,16 @@ class LinearApproximator(Approximator):
         while cur_date <= date_to:
             pred = self.predict(cur_date.strftime('%d.%m.%Y'))
             cur_date = cur_date + datetime.timedelta(days=1)
-            
+
             list_of_ret.append(pred)
 
         return list_of_ret
 
+
 class NesterovConstantGamma(Approximator):
     r"""
-    Реализация метода Нестерова, в случае фиксированых параметров \Delta и \gamma
+    Реализация метода Нестерова, в случае фиксированых параметров \Delta и
+    \gamma
     """
     _name = 'Нестеров с постоянными параметрами'
     _parameters = {'gamma': {
@@ -275,13 +279,13 @@ class NesterovConstantGamma(Approximator):
         'min': '0.0',
         'max': '10.0'},
         'delta': {
-        'description': 'Параметр задержки заболевения.'
-                       ' В диапазоне от 1 до 30',
-        'type': 'continues',
-        'values': [],
-        'default': '14',
-        'min': '1',
-        'max': '30'}}
+            'description': 'Параметр задержки заболевения.'
+                           ' В диапазоне от 1 до 30',
+            'type': 'continues',
+            'values': [],
+            'default': '14',
+            'min': '1',
+            'max': '30'}}
 
     def __init__(self, gamma=1.0, delta=10):
         super(NesterovConstantGamma, self).__init__()
@@ -291,7 +295,7 @@ class NesterovConstantGamma(Approximator):
             self.gamma = float(self._parameters['gamma']['min'])
         if self.gamma > float(self._parameters['gamma']['max']):
             self.gamma = float(self._parameters['gamma']['max'])
-        
+
         self.delta = int(delta)
         if self.delta < int(self._parameters['delta']['min']):
             self.delta = int(self._parameters['delta']['min'])
@@ -316,23 +320,22 @@ class NesterovConstantGamma(Approximator):
         self.dict_of_data = dict()
 
         for key in data:
-            date = datetime.datetime.strptime(data[key]['date'], '%d.%m.%Y').date()
+            date = datetime.datetime.strptime(data[key]['date'],
+                                              '%d.%m.%Y').date()
             if date not in self.dict_of_data:
                 self.dict_of_data[date] = dict()
             self.dict_of_data[date]['new sick'] = data[key]['sick']
-            
+
         # Надобы обработать пропуск значений
-            
+
         for key in self.dict_of_data:
-            self.dict_of_data[key]['sick'] = self.dict_of_data.get(
-                key - datetime.timedelta(days=1), {'sick': 0})['sick'] + self.dict_of_data[key]['new sick'] 
+            self.dict_of_data[key]['sick'] = (self.dict_of_data.get(
+                key - datetime.timedelta(days=1), {'sick': 0})['sick']
+                + self.dict_of_data[key]['new sick'])
 
         for key in self.dict_of_data:
             self.dict_of_data[key]['gamma'] = self.gamma
             self.dict_of_data[key]['delta'] = self.delta
-
-
-
 
     def predict(self, date):
         r"""
@@ -358,29 +361,30 @@ class NesterovConstantGamma(Approximator):
             self.dict_of_data[cur_date] = dict()
             self.dict_of_data[cur_date]['gamma'] = self.gamma
             self.dict_of_data[cur_date]['delta'] = self.delta
-            
+
+            # C(d) = gamma(d - \delta) * (T(d - 1) - T(d - \delta - 1))
             self.dict_of_data[cur_date]['new sick'] = int(
                 self.dict_of_data.get(
-                    cur_date-datetime.timedelta(days=self.dict_of_data[cur_date]['delta']), 
-                    {'gamma': self.gamma})['gamma']\
-                *(
-                    self.dict_of_data.get(
-                        cur_date-datetime.timedelta(days=1), 
-                        {'sick': 0})['sick'] \
-                    - self.dict_of_data.get(
-                        cur_date-datetime.timedelta(days=self.dict_of_data[cur_date]['delta']+1), 
-                        {'sick': 0})['sick']))
-            
-            self.dict_of_data[cur_date]['sick'] = self.dict_of_data.get(
-                cur_date-datetime.timedelta(days=1), 
-                {'sick': 0})['sick'] + self.dict_of_data[cur_date]['new sick']
-            
-            cur_date = cur_date + datetime.timedelta(days=1)
-    
+                    cur_date - datetime.timedelta(
+                        days=self.dict_of_data[cur_date]['delta']),
+                    {'gamma': self.gamma})['gamma']
+                * (self.dict_of_data.get(cur_date - datetime.timedelta(days=1),
+                                         {'sick': 0})['sick']
+                   - self.dict_of_data.get(cur_date - datetime.timedelta(
+                       days=self.dict_of_data[cur_date]['delta'] + 1),
+                       {'sick': 0})['sick']
+                   )
+            )
 
-        return {'date': date.strftime('%d.%m.%Y'), 
-                'sick': self.dict_of_data[date]['new sick'], 
-                'recovered': 0, 
+            self.dict_of_data[cur_date]['sick'] = self.dict_of_data.get(
+                cur_date - datetime.timedelta(days=1),
+                {'sick': 0})['sick'] + self.dict_of_data[cur_date]['new sick']
+
+            cur_date = cur_date + datetime.timedelta(days=1)
+
+        return {'date': date.strftime('%d.%m.%Y'),
+                'sick': self.dict_of_data[date]['new sick'],
+                'recovered': 0,
                 'died': 0}
 
     def predict_between(self, date_from, date_to):
@@ -410,14 +414,16 @@ class NesterovConstantGamma(Approximator):
         while cur_date <= date_to:
             pred = self.predict(cur_date.strftime('%d.%m.%Y'))
             cur_date = cur_date + datetime.timedelta(days=1)
-            
+
             list_of_ret.append(pred)
 
         return list_of_ret
 
+
 class Nesterov(Approximator):
     r"""
-    Реализация метода Нестерова, в случае фиксированого параметра \Delta и предсказания \gamma
+    Реализация метода Нестерова, в случае фиксированого параметра \Delta
+    и предсказаний \gamma, k и l
     """
     _name = 'Модель Нестерова'
     _parameters = {'model': {
@@ -428,26 +434,57 @@ class Nesterov(Approximator):
         'min': None,
         'max': None},
         'delta': {
-        'description': 'Параметр задержки заболевения.'
-                       ' В диапазоне от 1 до 30',
-        'type': 'continues',
-        'values': [],
-        'default': '14',
-        'min': '1',
-        'max': '30'}}
+            'description': 'Параметр задержки заболевения.'
+                           ' В диапазоне от 1 до 30',
+            'type': 'continues',
+            'values': [],
+            'default': '14',
+            'min': '1',
+            'max': '30'}}
 
     def __init__(self, delta=14, model='ARIMA'):
         super(Nesterov, self).__init__()
-        
+
         self.delta = int(delta)
         if self.delta < int(self._parameters['delta']['min']):
             self.delta = int(self._parameters['delta']['min'])
         if self.delta > int(self._parameters['delta']['max']):
             self.delta = int(self._parameters['delta']['max'])
 
-        self.gamma = 1/self.delta
+        self.gamma = 1 / self.delta
+        self.k_param = 0.0007
+        self.l_param = 0.03
 
         self.model = model
+
+    def calculate_S(self, date):
+        # S(d) = S(d - 1) + C(d) - D(d) - L(d)
+        return (self.dict_of_data.get(date + datetime.timedelta(days=-1),
+                                      {'S': 0})['S']
+                + self.dict_of_data[date]['new sick']
+                - self.dict_of_data[date]['new died']
+                - self.dict_of_data[date]['new reco'])
+
+    def calculate_gamma(self, key):
+        # gamma(d) = C(d + \delta) / (T(d + \delta - 1) - T(d - 1))
+        delta = self.dict_of_data[key]['delta']
+        return (self.dict_of_data[key + datetime.timedelta(days=delta)]
+                ['new sick']
+                / (self.dict_of_data[key + datetime.timedelta(days=delta - 1)]
+                   ['sick'] - self.dict_of_data.get(
+                   key + datetime.timedelta(days=-1), {'sick': 0})['sick'])
+                )
+
+    def calculate_k_and_l(self, key):
+        # k(d) = D(d) / S(d - 1)
+        # l(d) = R(d) / S(d - 1)
+        def calc(value):
+            return (value / S_prev) if S_prev != 0 else 0
+
+        S_prev = self.dict_of_data.get(key + datetime.timedelta(days=-1),
+                                       {'S': 0})['S']
+        self.dict_of_data[key]['k'] = calc(self.dict_of_data[key]['new died'])
+        self.dict_of_data[key]['l'] = calc(self.dict_of_data[key]['new reco'])
 
     def fit(self, data):
         r"""
@@ -467,36 +504,67 @@ class Nesterov(Approximator):
         self.dict_of_data = dict()
 
         for key in data:
-            date = datetime.datetime.strptime(data[key]['date'], '%d.%m.%Y').date()
+            date = datetime.datetime.strptime(data[key]['date'],
+                                              '%d.%m.%Y').date()
             if date not in self.dict_of_data:
                 self.dict_of_data[date] = dict()
             self.dict_of_data[date]['new sick'] = data[key]['sick']
-            
-        # Надобы обработать пропуск значений
-            
+            self.dict_of_data[date]['new died'] = data[key]['died']
+            self.dict_of_data[date]['new reco'] = data[key]['recovered']
+
+        # Надо бы обработать пропуск значений
+
         for key in self.dict_of_data:
-            self.dict_of_data[key]['sick'] = self.dict_of_data.get(
-                key - datetime.timedelta(days=1), {'sick': 0})['sick'] + self.dict_of_data[key]['new sick'] 
+            self.dict_of_data[key]['sick'] = (self.dict_of_data.get(
+                key - datetime.timedelta(days=1), {'sick': 0})['sick']
+                + self.dict_of_data[key]['new sick'])
 
         if self.model == 'ARIMA':
             for key in self.dict_of_data:
                 self.dict_of_data[key]['delta'] = self.delta
                 try:
-                    self.dict_of_data[key]['gamma'] = self.dict_of_data[key + datetime.timedelta(days=self.dict_of_data[key]['delta'])]['new sick']/(self.dict_of_data[key + datetime.timedelta(days=self.dict_of_data[key]['delta']-1)]['sick'] - self.dict_of_data.get(key + datetime.timedelta(days=-1), {'sick': 0})['sick'])
-                except Exception as e:
+                    self.dict_of_data[key]['gamma'] = self.calculate_gamma(key)
+                except Exception:
                     pass
 
-            gammas = [self.dict_of_data[key]['gamma'] for key in self.dict_of_data if 'gamma' in self.dict_of_data[key]]
-            dates = [key.strftime('%Y-%m-%d') for key in self.dict_of_data if 'gamma' in self.dict_of_data[key]]
+                self.dict_of_data[key]['S'] = self.calculate_S(key)
+                self.calculate_k_and_l(key)
 
-            self.gamma_model = ARIMA(pd.Series(gammas, index=dates), 
-                order=(6, 0, 4), trend='n').fit()
+            gammas = [self.dict_of_data[key]['gamma'] for key in
+                      self.dict_of_data if 'gamma' in self.dict_of_data[key]]
+            g_dates = [key.strftime('%Y-%m-%d') for key in self.dict_of_data if
+                       'gamma' in self.dict_of_data[key]]
+            ds = [self.dict_of_data[key]['k'] for key in self.dict_of_data if
+                  'k' in self.dict_of_data[key]]
+            ls = [self.dict_of_data[key]['l'] for key in self.dict_of_data if
+                  'l' in self.dict_of_data[key]]
+            dl_dates = [key.strftime('%Y-%m-%d') for key in self.dict_of_data if
+                        'k' in self.dict_of_data[key]]
+
+            self.gamma_model = ARIMA(pd.Series(gammas, index=g_dates),
+                                     order=(6, 0, 4), trend='n').fit()
+            self.d_model = ARIMA(pd.Series(ds, index=dl_dates),
+                                 order=(5, 1, 4), trend='n').fit()
+            self.l_model = ARIMA(pd.Series(ls, index=dl_dates),
+                                 order=(6, 1, 6), trend='n').fit()
 
             for key in self.dict_of_data:
-                if 'gamma' not in self.dict_of_data[key]:
-                    cur_date = key.strftime('%Y-%m-%d')
-                    self.dict_of_data[key]['gamma'] = self.gamma_model.predict(start=cur_date, end=cur_date).values[0]        
+                self.predict_params(key)
 
+    def predict_params(self, date):
+        date_str = date.strftime('%Y-%m-%d')
+        if 'gamma' not in self.dict_of_data[date]:
+            self.dict_of_data[date]['gamma'] = \
+                self.gamma_model.predict(start=date_str,
+                                         end=date_str).values[0]
+        if 'k' not in self.dict_of_data[date]:
+            self.dict_of_data[date]['k'] = \
+                self.d_model.predict(start=date_str,
+                                     end=date_str).values[0]
+        if 'l' not in self.dict_of_data[date]:
+            self.dict_of_data[date]['l'] = \
+                self.l_model.predict(start=date_str,
+                                     end=date_str).values[0]
 
     def predict(self, date):
         r"""
@@ -516,38 +584,46 @@ class Nesterov(Approximator):
         :rtype: dict
         """
         date = datetime.datetime.strptime(date, '%d.%m.%Y').date()
-
         cur_date = max(self.dict_of_data) + datetime.timedelta(days=1)
         while cur_date <= date:
             self.dict_of_data[cur_date] = dict()
-            self.dict_of_data[cur_date]['gamma'] = self.gamma_model.predict(
-                start=cur_date.strftime('%Y-%m-%d'),
-                end=cur_date.strftime('%Y-%m-%d')).values[0]
+            self.predict_params(cur_date)
             self.dict_of_data[cur_date]['delta'] = self.delta
-            
+
+            # gamma(d) = gamma(d - \delta) * (C(d - 1) - C(d - \delta + 1))
             self.dict_of_data[cur_date]['new sick'] = int(
                 self.dict_of_data.get(
-                    cur_date-datetime.timedelta(days=self.dict_of_data[cur_date]['delta']), 
-                    {'gamma': self.gamma})['gamma']\
-                *(
-                    self.dict_of_data.get(
-                        cur_date-datetime.timedelta(days=1), 
-                        {'sick': 0})['sick'] \
-                    - self.dict_of_data.get(
-                        cur_date-datetime.timedelta(days=self.dict_of_data[cur_date]['delta']+1), 
+                    cur_date - datetime.timedelta(days=self.dict_of_data[
+                        cur_date]['delta']),
+                    {'gamma': self.gamma})['gamma'] * (self.dict_of_data.get(
+                        cur_date - datetime.timedelta(days=1),
+                        {'sick': 0})['sick'] - self.dict_of_data.get(
+                        cur_date - datetime.timedelta(days=self.dict_of_data[
+                            cur_date]['delta'] + 1),
                         {'sick': 0})['sick']))
-            
-            self.dict_of_data[cur_date]['sick'] = self.dict_of_data.get(
-                cur_date-datetime.timedelta(days=1), 
-                {'sick': 0})['sick'] + self.dict_of_data[cur_date]['new sick']
-            
-            cur_date = cur_date + datetime.timedelta(days=1)
-    
 
-        return {'date': date.strftime('%d.%m.%Y'), 
-                'sick': self.dict_of_data[date]['new sick'], 
-                'recovered': 0, 
-                'died': 0}
+            # D(d) = k(d) * S(d - 1)
+            self.dict_of_data[cur_date]['new died'] = int(
+                self.dict_of_data.get(cur_date, {'k', self.k_param})['k']
+                * self.dict_of_data[cur_date + datetime.timedelta(days=-1)]['S']
+            )
+            # R(d) = l(d) * S(d - 1)
+            self.dict_of_data[cur_date]['new reco'] = int(
+                self.dict_of_data.get(cur_date, {'l', self.l_param})['l']
+                * self.dict_of_data[cur_date + datetime.timedelta(days=-1)]['S']
+            )
+            self.dict_of_data[cur_date]['S'] = self.calculate_S(cur_date)
+
+            self.dict_of_data[cur_date]['sick'] = self.dict_of_data.get(
+                cur_date - datetime.timedelta(days=1),
+                {'sick': 0})['sick'] + self.dict_of_data[cur_date]['new sick']
+
+            cur_date = cur_date + datetime.timedelta(days=1)
+
+        return {'date': date.strftime('%d.%m.%Y'),
+                'sick': self.dict_of_data[date]['new sick'],
+                'recovered': self.dict_of_data[date]['new reco'],
+                'died': self.dict_of_data[date]['new died']}
 
     def predict_between(self, date_from, date_to):
         r"""
@@ -576,7 +652,7 @@ class Nesterov(Approximator):
         while cur_date <= date_to:
             pred = self.predict(cur_date.strftime('%d.%m.%Y'))
             cur_date = cur_date + datetime.timedelta(days=1)
-            
+
             list_of_ret.append(pred)
 
         return list_of_ret
