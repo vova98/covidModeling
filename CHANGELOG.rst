@@ -2,6 +2,9 @@
 Changelog
 #########
 
+v0.1.0
+  - add model for prediction all parameters
+
 v0.0.9
   - add simple gamma predition for Nesterov model
 
