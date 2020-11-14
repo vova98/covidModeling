@@ -278,6 +278,22 @@ class NesterovConstantGamma(Approximator):
         'default': '0.075',
         'min': '0.0',
         'max': '10.0'},
+        'k': {
+            'description': 'Ежедневная смертность'
+                           ' В диапазоне от 0. до 10.',
+            'type': 'continues',
+            'values': [],
+            'default': '0.0007',
+            'min': '0.0',
+            'max': '10.0'},
+        'l': {
+            'description': 'Ежедневная скорость выздоровления'
+                           ' В диапазоне от 0. до 10.',
+            'type': 'continues',
+            'values': [],
+            'default': '0.03',
+            'min': '0.0',
+            'max': '10.0'},
         'delta': {
             'description': 'Параметр задержки заболевения.'
                            ' В диапазоне от 1 до 30',
@@ -287,7 +303,7 @@ class NesterovConstantGamma(Approximator):
             'min': '1',
             'max': '30'}}
 
-    def __init__(self, gamma=1.0, delta=10):
+    def __init__(self, gamma=1.0, k=0.0007, l=0.03, delta=10):
         super(NesterovConstantGamma, self).__init__()
 
         self.gamma = float(gamma)
@@ -295,6 +311,18 @@ class NesterovConstantGamma(Approximator):
             self.gamma = float(self._parameters['gamma']['min'])
         if self.gamma > float(self._parameters['gamma']['max']):
             self.gamma = float(self._parameters['gamma']['max'])
+
+        self.k = float(k)
+        if self.k < float(self._parameters['k']['min']):
+            self.k = float(self._parameters['k']['min'])
+        if self.k > float(self._parameters['k']['max']):
+            self.k = float(self._parameters['k']['max'])
+
+        self.l = float(l)
+        if self.l < float(self._parameters['l']['min']):
+            self.l = float(self._parameters['l']['min'])
+        if self.l > float(self._parameters['l']['max']):
+            self.l = float(self._parameters['l']['max'])
 
         self.delta = int(delta)
         if self.delta < int(self._parameters['delta']['min']):
@@ -325,6 +353,8 @@ class NesterovConstantGamma(Approximator):
             if date not in self.dict_of_data:
                 self.dict_of_data[date] = dict()
             self.dict_of_data[date]['new sick'] = data[key]['sick']
+            self.dict_of_data[date]['new died'] = data[key]['died']
+            self.dict_of_data[date]['new reco'] = data[key]['recovered']
 
         # Надобы обработать пропуск значений
 
@@ -333,8 +363,16 @@ class NesterovConstantGamma(Approximator):
                 key - datetime.timedelta(days=1), {'sick': 0})['sick']
                 + self.dict_of_data[key]['new sick'])
 
+            self.dict_of_data[key]['S'] = self.dict_of_data.get(
+                key + datetime.timedelta(days=-1), {'S': 0})['S'] \
+                + self.dict_of_data[key]['new sick'] \
+                - self.dict_of_data[key]['new died'] \
+                - self.dict_of_data[key]['new reco'] \
+
         for key in self.dict_of_data:
             self.dict_of_data[key]['gamma'] = self.gamma
+            self.dict_of_data[key]['k'] = self.k
+            self.dict_of_data[key]['l'] = self.l
             self.dict_of_data[key]['delta'] = self.delta
 
     def predict(self, date):
@@ -360,6 +398,8 @@ class NesterovConstantGamma(Approximator):
         while cur_date <= date:
             self.dict_of_data[cur_date] = dict()
             self.dict_of_data[cur_date]['gamma'] = self.gamma
+            self.dict_of_data[cur_date]['k'] = self.k
+            self.dict_of_data[cur_date]['l'] = self.l
             self.dict_of_data[cur_date]['delta'] = self.delta
 
             # C(d) = gamma(d - \delta) * (T(d - 1) - T(d - \delta - 1))
@@ -379,13 +419,27 @@ class NesterovConstantGamma(Approximator):
             self.dict_of_data[cur_date]['sick'] = self.dict_of_data.get(
                 cur_date - datetime.timedelta(days=1),
                 {'sick': 0})['sick'] + self.dict_of_data[cur_date]['new sick']
+            self.dict_of_data[cur_date]['new died'] = int(
+                self.dict_of_data.get(cur_date, {'k', self.k})['k'] \
+                * self.dict_of_data[cur_date + datetime.timedelta(days=-1)]['S']
+            )
+            self.dict_of_data[cur_date]['new reco'] = int(
+                self.dict_of_data.get(cur_date, {'l', self.l})['l'] \
+                * self.dict_of_data[cur_date + datetime.timedelta(days=-1)]['S']
+            )
+            self.dict_of_data[cur_date]['S'] = self.dict_of_data.get(
+                cur_date + datetime.timedelta(days=-1), {'S': 0})['S'] \
+                + self.dict_of_data[cur_date]['new sick'] \
+                - self.dict_of_data[cur_date]['new died'] \
+                - self.dict_of_data[cur_date]['new reco'] \
+
 
             cur_date = cur_date + datetime.timedelta(days=1)
 
         return {'date': date.strftime('%d.%m.%Y'),
                 'sick': self.dict_of_data[date]['new sick'],
-                'recovered': 0,
-                'died': 0}
+                'recovered': self.dict_of_data[date]['new died'],
+                'died': self.dict_of_data[date]['new reco']}
 
     def predict_between(self, date_from, date_to):
         r"""
