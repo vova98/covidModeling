@@ -2,7 +2,11 @@
 Modeling of COVID-19 spreading
 ##############################
 
-|build| |deploy| 
+|colab| |build| |deploy| 
+
+.. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
+    :target: https://colab.research.google.com/github/googlecolab/colabtools/blob/master/notebooks/colab-github-demo.ipynb
+    :alt: colab
 
 .. |build| image:: https://github.com/vova98/covidModeling/workflows/Testing%20Compatibility/badge.svg
     :target: https://github.com/vova98/covidModeling/actions
